@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { renderWithRouter, screen, within } from '../test-utils.jsx';
+import { renderWithRouter, screen, waitFor } from '../test-utils.jsx';
 import ReservarPage from '../../pages/ReservarPage.jsx';
 
 describe('ReservarPage wizard', () => {
@@ -21,16 +21,34 @@ describe('ReservarPage wizard', () => {
     const user = userEvent.setup();
     renderWithRouter(<ReservarPage />, { route: '/reservar' });
 
-    // Step 1: pick first service and continue
+    // Step 1: pick service and continue
     await user.click(screen.getByRole('button', { name: /terapia individual/i }));
     await user.click(screen.getByRole('button', { name: /continuar/i }));
 
-    // Step 2: calendar + time slot
+    // Step 2: calendar — esperar a que los días disponibles se carguen,
+    // tomar el primero disponible. En mock, son lun-vie a partir de hoy.
     expect(screen.getByRole('heading', { name: /elegí día y hora/i })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /9:00/i }));
+
+    const dayBtn = await waitFor(() => {
+      const days = screen.getAllByRole('button').filter((el) =>
+        /^[a-zñáéíóú]+ \d+(, seleccionado)?$/i.test(el.getAttribute('aria-label') ?? '')
+      );
+      if (days.length === 0) throw new Error('no available days yet');
+      return days[0];
+    });
+    await user.click(dayBtn);
+
+    // Tomar el primer slot que aparezca
+    const slot = await waitFor(() => {
+      const buttons = screen.getAllByRole('button').filter((el) => /^\d{1,2}:\d{2}$/.test(el.textContent ?? ''));
+      if (buttons.length === 0) throw new Error('no slots');
+      return buttons[0];
+    });
+    await user.click(slot);
+
     await user.click(screen.getByRole('button', { name: /continuar/i }));
 
-    // Step 3: form. The submit button must be disabled while form is incomplete.
+    // Step 3: form
     expect(screen.getByRole('heading', { name: /tus datos/i })).toBeInTheDocument();
     const submit = screen.getByRole('button', { name: /confirmar reserva/i });
     expect(submit).toBeDisabled();
@@ -44,7 +62,7 @@ describe('ReservarPage wizard', () => {
     await user.click(submit);
 
     // Step 4: confirmation
-    expect(screen.getByRole('heading', { name: /nos vemos pronto/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /nos vemos pronto/i })).toBeInTheDocument();
     expect(screen.getByText(/isaac@example\.com/i)).toBeInTheDocument();
   });
 

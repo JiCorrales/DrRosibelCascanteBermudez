@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Eyebrow,
@@ -11,8 +11,8 @@ import {
   Icon,
 } from '../components/primitives.jsx';
 import CalPicker from '../components/CalPicker.jsx';
-import { SERVICES, TIMES, findService, formatColon } from '../data.js';
-import { useCreateBooking } from '../lib/queries.js';
+import { SERVICES, findService, formatColon } from '../data.js';
+import { useCreateBooking, useOpenDays, useSlotsForDay } from '../lib/queries.js';
 import { isSupabaseConfigured } from '../lib/supabase.js';
 
 const STEP_TITLES = {
@@ -47,7 +47,45 @@ const labelStyle = {
   textTransform: 'uppercase',
 };
 
-function SummaryCard({ service, day, time }) {
+const SHORT_DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const MONTH_NAMES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function formatDateLong(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T12:00:00');
+  return `${SHORT_DAYS[d.getDay()]} ${d.getDate()} de ${MONTH_NAMES[d.getMonth()]}`;
+}
+
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function monthRange(year, month) {
+  const last = new Date(year, month + 1, 0).getDate();
+  return {
+    from: `${year}-${pad2(month + 1)}-01`,
+    to: `${year}-${pad2(month + 1)}-${pad2(last)}`,
+  };
+}
+
+// Construye ISO timestamp en zona local del navegador, alineado con cómo
+// el server interpreta scheduled_at (timestamptz).
+function buildScheduledAt(isoDate, hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  const [y, mo, d] = isoDate.split('-').map(Number);
+  const local = new Date(y, mo - 1, d, h, m, 0, 0);
+  return local.toISOString();
+}
+
+function SummaryCard({ service, isoDate, slot }) {
   if (!service) return null;
   return (
     <aside
@@ -66,16 +104,16 @@ function SummaryCard({ service, day, time }) {
           <Meta>Duración</Meta>
           <H3 size={14}>{service.dur} min</H3>
         </Row>
-        {day != null && (
+        {isoDate && (
           <Row justify="space-between">
             <Meta>Fecha</Meta>
-            <H3 size={14}>{`Jue ${day} may 2026`}</H3>
+            <H3 size={14}>{formatDateLong(isoDate)}</H3>
           </Row>
         )}
-        {time != null && (
+        {slot && (
           <Row justify="space-between">
             <Meta>Hora</Meta>
-            <H3 size={14}>{TIMES[time]}</H3>
+            <H3 size={14}>{slot}</H3>
           </Row>
         )}
         <div className="wf-divider" />
@@ -90,7 +128,7 @@ function SummaryCard({ service, day, time }) {
   );
 }
 
-function Confirmation({ form, service, day, time, onReset }) {
+function Confirmation({ form, service, isoDate, slot, onReset }) {
   return (
     <section className="section" style={{ paddingTop: 56 }}>
       <div className="container">
@@ -125,7 +163,7 @@ function Confirmation({ form, service, day, time, onReset }) {
               </Row>
               <Row justify="space-between">
                 <Meta>Fecha</Meta>
-                <H3 size={15}>{`Jue ${day} may 2026 · ${TIMES[time]}`}</H3>
+                <H3 size={15}>{`${formatDateLong(isoDate)} · ${slot}`}</H3>
               </Row>
               <Row justify="space-between">
                 <Meta>Duración</Meta>
@@ -154,17 +192,6 @@ function Confirmation({ form, service, day, time, onReset }) {
   );
 }
 
-// Construye el ISO timestamp de la reserva a partir del día seleccionado
-// y el índice de TIMES. Asume mayo 2026 (alineado con los seeds actuales).
-// Cuando integremos el calendario real, esto vendrá de un Date completo.
-function buildScheduledAt(day, timeIndex) {
-  const hhmm = TIMES[timeIndex];
-  const [h, m] = hhmm.split(':').map(Number);
-  // Local CR (UTC-6), pero serializamos en UTC para que el server compare correctamente
-  const local = new Date(2026, 4, day, h, m, 0, 0); // mes 4 = mayo (0-indexed)
-  return local.toISOString();
-}
-
 export default function ReservarPage() {
   const navigate = useNavigate();
   const [search] = useSearchParams();
@@ -172,8 +199,14 @@ export default function ReservarPage() {
 
   const [step, setStep] = useState(1);
   const [svc, setSvc] = useState(() => (findService(preService) ? preService : SERVICES[0].id));
-  const [day, setDay] = useState(14);
-  const [time, setTime] = useState(2);
+
+  // Calendario navegable
+  const initial = new Date();
+  const [year, setYear] = useState(initial.getFullYear());
+  const [month, setMonth] = useState(initial.getMonth()); // 0-indexed
+  const [selectedDate, setSelectedDate] = useState(null); // 'YYYY-MM-DD'
+  const [selectedSlot, setSelectedSlot] = useState(null); // 'HH:MM'
+
   const [form, setForm] = useState({ name: '', email: '', phone: '', msg: '', consent: false });
   const [submitError, setSubmitError] = useState('');
 
@@ -185,11 +218,34 @@ export default function ReservarPage() {
     document.title = 'Reservar cita · Dra. Rosibel Cascante Bermúdez';
   }, []);
 
+  // Cargar días abiertos del mes activo
+  const range = useMemo(() => monthRange(year, month), [year, month]);
+  const openDaysQ = useOpenDays({
+    from: range.from,
+    to: range.to,
+    durationMin: service?.dur ?? 50,
+  });
+  const availableDates = useMemo(() => new Set(openDaysQ.data ?? []), [openDaysQ.data]);
+
+  // Cargar slots del día seleccionado
+  const slotsQ = useSlotsForDay({
+    date: selectedDate,
+    durationMin: service?.dur ?? 50,
+  });
+  const slots = slotsQ.data ?? [];
+
+  // Si el slot seleccionado ya no está libre (lo agarró otro mientras tanto), limpiarlo
+  useEffect(() => {
+    if (selectedSlot && slots.length > 0 && !slots.includes(selectedSlot)) {
+      setSelectedSlot(null);
+    }
+  }, [slots, selectedSlot]);
+
   const canNext =
     step === 1
       ? Boolean(svc)
       : step === 2
-      ? day != null && time != null
+      ? Boolean(selectedDate && selectedSlot)
       : step === 3
       ? Boolean(form.name.trim() && form.email.trim() && form.phone.trim() && form.consent)
       : true;
@@ -203,18 +259,16 @@ export default function ReservarPage() {
     e?.preventDefault?.();
     if (!canNext || submitting) return;
 
-    // Pasos 1-2 sólo avanzan localmente
     if (step < 3) {
       setStep((s) => s + 1);
       return;
     }
 
-    // Paso 3: confirmar reserva
     setSubmitError('');
     try {
       await createBooking.mutateAsync({
         service_id: svc,
-        scheduled_at: buildScheduledAt(day, time),
+        scheduled_at: buildScheduledAt(selectedDate, selectedSlot),
         duration_min: service.dur,
         modality: 'online',
         patient_name: form.name.trim(),
@@ -226,9 +280,9 @@ export default function ReservarPage() {
       setStep(4);
     } catch (err) {
       const msg = err?.message ?? 'No pudimos guardar tu reserva. Por favor probá de nuevo.';
-      // Mensajes de RLS o constraint hablan en SQL — los traducimos al usuario.
       if (msg.includes('bookings_no_overlap_idx') || msg.toLowerCase().includes('duplicate')) {
         setSubmitError('Ese horario acaba de quedar reservado. Por favor elegí otro.');
+        slotsQ.refetch?.();
       } else if (msg.toLowerCase().includes('row-level security')) {
         setSubmitError('La reserva no pasó la validación. Revisá los datos e intentá de nuevo.');
       } else {
@@ -244,8 +298,33 @@ export default function ReservarPage() {
   };
 
   if (step === 4) {
-    return <Confirmation form={form} service={service} day={day} time={time} onReset={onReset} />;
+    return (
+      <Confirmation
+        form={form}
+        service={service}
+        isoDate={selectedDate}
+        slot={selectedSlot}
+        onReset={onReset}
+      />
+    );
   }
+
+  const navMonth = (delta) => {
+    let y = year;
+    let m = month + delta;
+    if (m < 0) {
+      m = 11;
+      y -= 1;
+    } else if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+    // No retroceder a meses pasados
+    const now = new Date();
+    if (y < now.getFullYear() || (y === now.getFullYear() && m < now.getMonth())) return;
+    setYear(y);
+    setMonth(m);
+  };
 
   return (
     <section className="section" style={{ paddingTop: 32 }}>
@@ -368,46 +447,95 @@ export default function ReservarPage() {
             {step === 2 && (
               <Stack gap={24}>
                 <div className="wf-card" style={{ padding: 24 }}>
-                  <CalPicker day={day} setDay={setDay} />
-                </div>
-                <Stack gap={12}>
-                  <Row justify="space-between" align="center">
-                    <H3 size={16}>{`Jueves ${day} de mayo`}</H3>
-                    <Meta>{TIMES.length} horarios</Meta>
-                  </Row>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
-                      gap: 10,
+                  <CalPicker
+                    year={year}
+                    month={month}
+                    selectedISODate={selectedDate}
+                    availableDates={availableDates}
+                    onSelectDate={(iso) => {
+                      setSelectedDate(iso);
+                      setSelectedSlot(null);
                     }}
-                  >
-                    {TIMES.map((t, i) => (
-                      <button
-                        key={t}
-                        onClick={() => setTime(i)}
-                        type="button"
-                        aria-pressed={i === time}
-                        style={{ all: 'unset', cursor: 'pointer' }}
+                    onPrev={() => navMonth(-1)}
+                    onNext={() => navMonth(1)}
+                    loading={openDaysQ.isLoading}
+                  />
+                </div>
+
+                {!selectedDate && !openDaysQ.isLoading && availableDates.size === 0 && (
+                  <Body style={{ color: 'var(--ink-500)' }}>
+                    No hay días disponibles este mes. Probá con el mes siguiente.
+                  </Body>
+                )}
+
+                {selectedDate && (
+                  <Stack gap={12}>
+                    <Row justify="space-between" align="center">
+                      <H3 size={16}>{formatDateLong(selectedDate)}</H3>
+                      <Meta>
+                        {slotsQ.isLoading
+                          ? 'Cargando…'
+                          : `${slots.length} horario${slots.length !== 1 ? 's' : ''}`}
+                      </Meta>
+                    </Row>
+                    {slotsQ.isError && (
+                      <Body
+                        role="alert"
+                        style={{
+                          padding: '10px 14px',
+                          background: 'var(--danger-100)',
+                          color: 'var(--danger-500)',
+                          borderRadius: 'var(--r-md)',
+                          border: '1px solid rgba(184,84,80,0.28)',
+                        }}
                       >
-                        <div
-                          className="wf-card"
-                          style={{
-                            padding: '14px 8px',
-                            textAlign: 'center',
-                            background: i === time ? 'var(--sage-500)' : '#fff',
-                            color: i === time ? 'var(--bg)' : 'var(--ink-700)',
-                            borderColor: i === time ? 'var(--sage-500)' : 'var(--line)',
-                          }}
-                        >
-                          <H3 size={15} style={{ color: 'inherit' }}>
-                            {t}
-                          </H3>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </Stack>
+                        No pudimos cargar los horarios.
+                      </Body>
+                    )}
+                    {!slotsQ.isLoading && !slotsQ.isError && slots.length === 0 && (
+                      <Body style={{ color: 'var(--ink-500)' }}>
+                        Sin horarios libres este día. Probá otro.
+                      </Body>
+                    )}
+                    {slots.length > 0 && (
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
+                          gap: 10,
+                        }}
+                      >
+                        {slots.map((t) => {
+                          const sel = t === selectedSlot;
+                          return (
+                            <button
+                              key={t}
+                              onClick={() => setSelectedSlot(t)}
+                              type="button"
+                              aria-pressed={sel}
+                              style={{ all: 'unset', cursor: 'pointer' }}
+                            >
+                              <div
+                                className="wf-card"
+                                style={{
+                                  padding: '14px 8px',
+                                  textAlign: 'center',
+                                  background: sel ? 'var(--sage-500)' : '#fff',
+                                  color: sel ? 'var(--bg)' : 'var(--ink-700)',
+                                  borderColor: sel ? 'var(--sage-500)' : 'var(--line)',
+                                }}
+                              >
+                                <H3 size={15} style={{ color: 'inherit' }}>
+                                  {t}
+                                </H3>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </Stack>
+                )}
               </Stack>
             )}
 
@@ -510,7 +638,11 @@ export default function ReservarPage() {
             </div>
           </form>
 
-          <SummaryCard service={service} day={step >= 2 ? day : null} time={step >= 2 ? time : null} />
+          <SummaryCard
+            service={service}
+            isoDate={step >= 2 ? selectedDate : null}
+            slot={step >= 2 ? selectedSlot : null}
+          />
         </div>
       </div>
 

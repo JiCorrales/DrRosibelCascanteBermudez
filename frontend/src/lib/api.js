@@ -88,6 +88,47 @@ export async function fetchAvailabilityOverrides() {
   return ok(data);
 }
 
+// Días con al menos un slot libre en un rango. Usado por el calendario
+// del wizard para resaltar qué días son seleccionables.
+export async function fetchOpenDays({ from, to, durationMin = 50 }) {
+  if (!isSupabaseConfigured) {
+    // Mock: lunes a viernes del rango pedido, descartando los pasados.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(from + 'T00:00:00');
+    const end = new Date(to + 'T00:00:00');
+    const out = [];
+    for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const wd = d.getDay();
+      if (wd === 0 || wd === 6) continue; // domingo/sábado
+      if (d < today) continue;
+      const pad = (n) => String(n).padStart(2, '0');
+      out.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    }
+    return ok(out);
+  }
+  const { data, error } = await supabase.rpc('get_open_days_in_range', {
+    start_date: from,
+    end_date: to,
+    duration_min: durationMin,
+  });
+  if (error) return err(error);
+  return ok((data ?? []).map((r) => r.open_date ?? r));
+}
+
+// Slots libres para un día específico (HH:MM strings).
+export async function fetchSlotsForDay({ date, durationMin = 50 }) {
+  if (!isSupabaseConfigured) {
+    return ok(MOCK_TIMES); // sin filtro de ocupado en mock
+  }
+  const { data, error } = await supabase.rpc('get_available_slots', {
+    target_date: date,
+    duration_min: durationMin,
+  });
+  if (error) return err(error);
+  return ok((data ?? []).map((r) => r.slot ?? r));
+}
+
 // ─────────────────────────────────────────────
 // RESERVAS
 // ─────────────────────────────────────────────

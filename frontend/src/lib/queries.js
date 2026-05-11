@@ -59,6 +59,26 @@ export function useAvailabilityOverrides() {
   });
 }
 
+// Días con slots libres en un rango (YYYY-MM-DD strings)
+export function useOpenDays({ from, to, durationMin = 50 }) {
+  return useQuery({
+    queryKey: ['availability', 'open-days', from, to, durationMin],
+    queryFn: () => handle(api.fetchOpenDays({ from, to, durationMin })),
+    enabled: Boolean(from && to),
+    staleTime: 1000 * 30,
+  });
+}
+
+// Slots libres para un día específico
+export function useSlotsForDay({ date, durationMin = 50 }) {
+  return useQuery({
+    queryKey: ['availability', 'slots', date, durationMin],
+    queryFn: () => handle(api.fetchSlotsForDay({ date, durationMin })),
+    enabled: Boolean(date),
+    staleTime: 1000 * 30,
+  });
+}
+
 // ─────────────────────────────────────────────
 // RESERVAS
 // ─────────────────────────────────────────────
