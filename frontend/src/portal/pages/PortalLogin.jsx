@@ -172,7 +172,7 @@ export default function PortalLogin() {
                   color: 'var(--danger-500)',
                   padding: '10px 14px',
                   borderRadius: 'var(--r-md)',
-                  border: '1px solid rgba(184,84,80,0.28)',
+                  border: '1px solid rgb(var(--danger-rgb) / 0.28)',
                   fontSize: 13,
                   width: '100%',
                   textAlign: 'left',

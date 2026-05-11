@@ -226,8 +226,8 @@ export default function AdminServiceEdit() {
                         : 'var(--danger-500)',
                     border:
                       feedback.kind === 'ok'
-                        ? '1px solid rgba(107,139,110,0.28)'
-                        : '1px solid rgba(184,84,80,0.28)',
+                        ? '1px solid rgb(var(--sage-rgb) / 0.28)'
+                        : '1px solid rgb(var(--danger-rgb) / 0.28)',
                   }}
                 >
                   {feedback.msg}

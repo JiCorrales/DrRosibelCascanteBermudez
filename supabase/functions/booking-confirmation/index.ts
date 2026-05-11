@@ -184,24 +184,24 @@ Un abrazo,
 Rosibel`;
 
   const html = `
-    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#3D4F3B;line-height:1.6">
-      <h1 style="font-family:Georgia,serif;font-size:24px;color:#2A382A;font-weight:500;margin:0 0 16px">${
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#5A3F4A;line-height:1.6">
+      <h1 style="font-family:Georgia,serif;font-size:24px;color:#3D2832;font-weight:500;margin:0 0 16px">${
         isReminder ? 'Mañana tenemos sesión' : 'Tu cita está reservada'
       }</h1>
       <p>${intro}</p>
       <table style="border-collapse:collapse;margin:16px 0;width:100%">
-        <tr><td style="padding:6px 0;color:#85997B">Cuándo</td><td style="padding:6px 0;font-weight:600">${cuando}</td></tr>
-        <tr><td style="padding:6px 0;color:#85997B">Duración</td><td style="padding:6px 0">${b.duration_min} min</td></tr>
-        <tr><td style="padding:6px 0;color:#85997B">Modalidad</td><td style="padding:6px 0">${modalidad}</td></tr>
-        ${b.service_name ? `<tr><td style="padding:6px 0;color:#85997B">Servicio</td><td style="padding:6px 0">${b.service_name}</td></tr>` : ''}
+        <tr><td style="padding:6px 0;color:#A89099">Cuándo</td><td style="padding:6px 0;font-weight:600">${cuando}</td></tr>
+        <tr><td style="padding:6px 0;color:#A89099">Duración</td><td style="padding:6px 0">${b.duration_min} min</td></tr>
+        <tr><td style="padding:6px 0;color:#A89099">Modalidad</td><td style="padding:6px 0">${modalidad}</td></tr>
+        ${b.service_name ? `<tr><td style="padding:6px 0;color:#A89099">Servicio</td><td style="padding:6px 0">${b.service_name}</td></tr>` : ''}
       </table>
-      <p style="background:#ECE4D4;padding:12px 14px;border-radius:6px;margin:20px 0">
+      <p style="background:#F0E4E2;padding:12px 14px;border-radius:6px;margin:20px 0">
         📅 <strong>Agregá la cita a tu calendario</strong> abriendo el archivo <code>.ics</code> adjunto a este correo (funciona con Google Calendar, Apple, Outlook).
       </p>
       <p style="margin:24px 0 12px">
         <a href="${wa}" style="display:inline-block;background:#1FA851;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600">💬 Escribirme por WhatsApp</a>
       </p>
-      <p style="margin:0 0 24px"><a href="${cancelLink}" style="color:#3F5A45">O entrá a tu portal de paciente →</a></p>
+      <p style="margin:0 0 24px"><a href="${cancelLink}" style="color:#6B4350">O entrá a tu portal de paciente →</a></p>
       <p>Un abrazo,<br/>Rosibel</p>
     </div>
   `;
@@ -237,25 +237,25 @@ Revisar / confirmar: ${SITE_URL}/admin/citas?estado=pending
 `;
 
   const html = `
-    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#3D4F3B;line-height:1.6">
-      <h1 style="font-family:Georgia,serif;font-size:22px;color:#2A382A;font-weight:500;margin:0 0 16px">${
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#5A3F4A;line-height:1.6">
+      <h1 style="font-family:Georgia,serif;font-size:22px;color:#3D2832;font-weight:500;margin:0 0 16px">${
         isReminder ? 'Recordatorio de sesión' : 'Nueva reserva'
       }</h1>
       <table style="border-collapse:collapse;width:100%">
-        <tr><td style="padding:6px 0;color:#85997B">Paciente</td><td style="padding:6px 0;font-weight:600">${b.patient_name}</td></tr>
-        <tr><td style="padding:6px 0;color:#85997B">Correo</td><td style="padding:6px 0">${b.patient_email}</td></tr>
-        <tr><td style="padding:6px 0;color:#85997B">Teléfono</td><td style="padding:6px 0">${b.patient_phone}</td></tr>
-        <tr><td style="padding:6px 0;color:#85997B">Cuándo</td><td style="padding:6px 0;font-weight:600">${cuando}</td></tr>
-        <tr><td style="padding:6px 0;color:#85997B">Servicio</td><td style="padding:6px 0">${b.service_name ?? b.service_id}</td></tr>
-        <tr><td style="padding:6px 0;color:#85997B">Modalidad</td><td style="padding:6px 0">${b.modality}</td></tr>
+        <tr><td style="padding:6px 0;color:#A89099">Paciente</td><td style="padding:6px 0;font-weight:600">${b.patient_name}</td></tr>
+        <tr><td style="padding:6px 0;color:#A89099">Correo</td><td style="padding:6px 0">${b.patient_email}</td></tr>
+        <tr><td style="padding:6px 0;color:#A89099">Teléfono</td><td style="padding:6px 0">${b.patient_phone}</td></tr>
+        <tr><td style="padding:6px 0;color:#A89099">Cuándo</td><td style="padding:6px 0;font-weight:600">${cuando}</td></tr>
+        <tr><td style="padding:6px 0;color:#A89099">Servicio</td><td style="padding:6px 0">${b.service_name ?? b.service_id}</td></tr>
+        <tr><td style="padding:6px 0;color:#A89099">Modalidad</td><td style="padding:6px 0">${b.modality}</td></tr>
       </table>
-      ${b.message ? `<p style="margin-top:16px;padding:12px 14px;background:#ECE4D4;border-radius:6px"><strong>Mensaje:</strong><br/>${b.message}</p>` : ''}
-      <p style="background:#E4E8DD;padding:12px 14px;border-radius:6px;margin:20px 0">
+      ${b.message ? `<p style="margin-top:16px;padding:12px 14px;background:#F0E4E2;border-radius:6px"><strong>Mensaje:</strong><br/>${b.message}</p>` : ''}
+      <p style="background:#F0DEE0;padding:12px 14px;border-radius:6px;margin:20px 0">
         📅 Calendario: abrí el archivo <code>.ics</code> adjunto para agregar este evento a tu Google Calendar.
       </p>
       <p style="margin:24px 0 12px">
         <a href="${wa}" style="display:inline-block;background:#1FA851;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px">💬 WhatsApp al paciente</a>
-        <a href="${SITE_URL}/admin/citas?estado=pending" style="display:inline-block;background:#5C7D60;color:#F2EDE3;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600">Revisar en panel →</a>
+        <a href="${SITE_URL}/admin/citas?estado=pending" style="display:inline-block;background:#8B5A6B;color:#FAF5F4;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600">Revisar en panel →</a>
       </p>
     </div>
   `;

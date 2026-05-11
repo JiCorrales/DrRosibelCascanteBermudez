@@ -107,8 +107,8 @@ export default function PortalAppts() {
             color: feedback.kind === 'ok' ? 'var(--sage-700)' : 'var(--danger-500)',
             border:
               feedback.kind === 'ok'
-                ? '1px solid rgba(107,139,110,0.28)'
-                : '1px solid rgba(184,84,80,0.28)',
+                ? '1px solid rgb(var(--sage-rgb) / 0.28)'
+                : '1px solid rgb(var(--danger-rgb) / 0.28)',
           }}
         >
           {feedback.msg}
@@ -128,7 +128,7 @@ export default function PortalAppts() {
             padding: '12px 16px',
             background: 'var(--danger-100)',
             color: 'var(--danger-500)',
-            border: '1px solid rgba(184,84,80,0.28)',
+            border: '1px solid rgb(var(--danger-rgb) / 0.28)',
             borderRadius: 'var(--r-md)',
           }}
         >

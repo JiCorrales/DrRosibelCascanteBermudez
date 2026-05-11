@@ -1,22 +1,48 @@
-/* Tokens del brief — Beige y salvia */
+/* Tokens — Mauve sofisticado (femenino + clínico).
+   Los nombres --sage-* se mantienen por compatibilidad histórica; el valor
+   ahora es mauve. Cuando aparece "sage" en código, leerlo como "color de
+   acción de marca".
+
+   IMPORTANTE — cómo cambiar la paleta a futuro:
+   Tocar SOLO los valores en esta sección. Los componentes RGB
+   (--ink-rgb / --sage-rgb / --bg-rgb) se usan en TODO el código vía
+   `rgb(var(--ink-rgb) / 0.10)` para overlays, sombras y bordes con
+   transparencia. Cambiar acá actualiza el sitio entero. */
 :root {
-  --bg: #F2EDE3;        /* Marfil claro */
-  --bg-2: #D8C9B0;      /* Beige cálido */
-  --bg-3: #ECE4D4;      /* Marfil intermedio */
-  --sage-100: #E4E8DD;  /* Salvia muy clara */
-  --sage-300: #A8B89A;  /* Salvia clara — acentos, divisores */
-  --sage-500: #5C7D60;  /* Salvia media — acción (oscurecido para contraste 4.5:1+) */
-  --sage-700: #3F5A45;  /* Salvia hover */
-  --ink-900: #2A382A;   /* Título extra oscuro */
-  --ink-700: #3D4F3B;   /* Cuerpo */
-  --ink-500: #5A6F58;   /* Secundario */
-  --ink-300: #85997B;   /* Terciario / overlines */
-  --line: rgba(42, 56, 42, 0.10);
-  --line-2: rgba(42, 56, 42, 0.18);
+  /* Colores base */
+  --bg: #FAF5F4;        /* Off-white rosado */
+  --bg-2: #E8D8D4;      /* Malva pálido */
+  --bg-3: #F0E4E2;      /* Rosado neutro intermedio */
+  --sage-100: #F0DEE0;  /* Mauve muy clara — fondos de cards/pills */
+  --sage-300: #C09BAA;  /* Mauve clara — acentos, divisores */
+  --sage-500: #8B5A6B;  /* Mauve media — acción principal (CTAs) */
+  --sage-700: #6B4350;  /* Mauve oscura — hover */
+  --ink-900: #3D2832;   /* Ciruela profundo — títulos */
+  --ink-700: #5A3F4A;   /* Cuerpo */
+  --ink-500: #856876;   /* Secundario */
+  --ink-300: #A89099;   /* Terciario / overlines */
+
+  /* Componentes RGB de los colores base — para usar con transparencia.
+     Sintaxis: rgb(var(--ink-rgb) / 0.10)  ← funciona en todos los browsers
+     modernos (Chrome 88+, Safari 14+, Firefox 89+).
+     Si cambia un color base arriba, actualizar también su RGB acá. */
+  --bg-rgb:    250 245 244;   /* = #FAF5F4 */
+  --sage-rgb:  139  90 107;   /* = #8B5A6B (acción/marca) */
+  --ink-rgb:    61  40  50;   /* = #3D2832 (ink-900, texto principal) */
+
+  /* Bordes y divisores derivados (mantienen nombres legacy) */
+  --line:   rgb(var(--ink-rgb) / 0.10);
+  --line-2: rgb(var(--ink-rgb) / 0.18);
+
+  /* Acento de marca (rosa antiguo) — usar con cuidado para destacar */
+  --accent-500: #B07989;
+  --accent-100: #F4E1E4;
+  --accent-rgb: 176 121 137; /* = #B07989 */
 
   /* Status colors */
   --danger-500: #B85450;        /* Validación inline / errores */
   --danger-100: #F4DEDC;        /* Fondo suave para alertas */
+  --danger-rgb: 184 84 80;      /* Para bordes con transparencia */
   --warning-500: #C8924E;       /* Pendiente de confirmar */
   --info-500:    #5B7791;       /* Info / neutral oscuro */
 
@@ -59,7 +85,7 @@
 /* Placeholder image boxes use diagonal hatch on a beige */
 .wf-photo {
   background:
-    repeating-linear-gradient(135deg, transparent 0 9px, rgba(42, 56, 42, 0.07) 9px 10px),
+    repeating-linear-gradient(135deg, transparent 0 9px, rgb(var(--ink-rgb) / 0.07) 9px 10px),
     var(--bg-2);
   border: 1px solid var(--line);
   display: flex;
@@ -77,8 +103,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(135deg, transparent 49.6%, rgba(42, 56, 42, 0.18) 49.6% 50.4%, transparent 50.4%),
-    linear-gradient(45deg, transparent 49.6%, rgba(42, 56, 42, 0.18) 49.6% 50.4%, transparent 50.4%);
+    linear-gradient(135deg, transparent 49.6%, rgb(var(--ink-rgb) / 0.18) 49.6% 50.4%, transparent 50.4%),
+    linear-gradient(45deg, transparent 49.6%, rgb(var(--ink-rgb) / 0.18) 49.6% 50.4%, transparent 50.4%);
   pointer-events: none;
 }
 .wf-photo > span {
@@ -93,10 +119,10 @@
 .wf-line {
   display: block;
   height: 8px;
-  background: rgba(42, 56, 42, 0.12);
+  background: rgb(var(--ink-rgb) / 0.12);
   border-radius: 4px;
 }
-.wf-line.dark { background: rgba(42, 56, 42, 0.22); }
+.wf-line.dark { background: rgb(var(--ink-rgb) / 0.22); }
 .wf-line.thick { height: 12px; }
 
 /* Generic block / card */
@@ -104,11 +130,11 @@
   background: #fff;
   border-radius: var(--r-lg);
   border: 1px solid var(--line);
-  box-shadow: 0 1px 0 rgba(42, 56, 42, 0.04);
+  box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.04);
 }
 .wf-card.tinted { background: var(--bg-3); border-color: var(--line); }
-.wf-card.sage   { background: var(--sage-100); border-color: rgba(107, 139, 110, 0.18); }
-.wf-card.warm   { background: var(--bg-2); border-color: rgba(42, 56, 42, 0.10); }
+.wf-card.sage   { background: var(--sage-100); border-color: rgb(var(--sage-rgb) / 0.18); }
+.wf-card.warm   { background: var(--bg-2); border-color: var(--line); }
 
 .wf-btn {
   display: inline-flex;
@@ -151,7 +177,7 @@
   border-radius: 999px;
   background: var(--sage-100);
   color: var(--ink-700);
-  border: 1px solid rgba(107, 139, 110, 0.25);
+  border: 1px solid rgb(var(--sage-rgb) / 0.25);
 }
 .wf-pill.warm { background: var(--bg-2); border-color: var(--line); color: var(--ink-700); }
 .wf-pill.outline { background: transparent; }
@@ -181,7 +207,7 @@
 .wf-body { font-family: var(--sans); font-size: 13px; line-height: 1.65; color: var(--ink-700); }
 
 .wf-divider { height: 1px; background: var(--line); }
-.wf-divider.sage { background: rgba(107, 139, 110, 0.35); }
+.wf-divider.sage { background: rgb(var(--sage-rgb) / 0.35); }
 
 /* Status bar (mobile chrome) */
 .wf-status {

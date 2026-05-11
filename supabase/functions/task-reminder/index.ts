@@ -67,15 +67,15 @@ Un abrazo,
 Rosibel`;
 
   const html = `
-    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#3D4F3B;line-height:1.6">
-      <h1 style="font-family:Georgia,serif;font-size:22px;color:#2A382A;font-weight:500;margin:0 0 16px">Tu tarea ${cuando}</h1>
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#5A3F4A;line-height:1.6">
+      <h1 style="font-family:Georgia,serif;font-size:22px;color:#3D2832;font-weight:500;margin:0 0 16px">Tu tarea ${cuando}</h1>
       <p>Hola ${t.patient_name.split(' ')[0]}, te recuerdo que ${cuando} tenés pendiente esto:</p>
-      <blockquote style="border-left:3px solid #5C7D60;background:#E4E8DD;padding:14px 18px;margin:16px 0;font-size:16px;color:#2A382A;border-radius:4px">
+      <blockquote style="border-left:3px solid #8B5A6B;background:#F0DEE0;padding:14px 18px;margin:16px 0;font-size:16px;color:#3D2832;border-radius:4px">
         <strong>${t.title}</strong>
-        ${t.description ? `<br/><span style="color:#5A6F58">${t.description}</span>` : ''}
+        ${t.description ? `<br/><span style="color:#856876">${t.description}</span>` : ''}
       </blockquote>
       <p style="margin:20px 0">
-        <a href="${portalLink}" style="display:inline-block;background:#5C7D60;color:#F2EDE3;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600">Marcar como hecha →</a>
+        <a href="${portalLink}" style="display:inline-block;background:#8B5A6B;color:#FAF5F4;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600">Marcar como hecha →</a>
       </p>
       <p style="margin:24px 0 12px">
         <a href="${wa}" style="display:inline-block;background:#1FA851;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600">💬 Escribirme por WhatsApp</a>

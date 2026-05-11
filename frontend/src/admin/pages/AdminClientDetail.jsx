@@ -68,7 +68,7 @@ export default function AdminClientDetail() {
               padding: '12px 16px',
               background: 'var(--danger-100)',
               color: 'var(--danger-500)',
-              border: '1px solid rgba(184,84,80,0.28)',
+              border: '1px solid rgb(var(--danger-rgb) / 0.28)',
               borderRadius: 'var(--r-md)',
             }}
           >
