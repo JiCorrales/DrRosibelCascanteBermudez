@@ -39,45 +39,47 @@ export default function PortalAppts() {
         ))}
       </Row>
 
-      <Stack gap={12}>
-        {filtered.length === 0 && (
-          <Body style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 24 }}>
-            Sin citas en esta categoría.
-          </Body>
-        )}
-        {filtered.map((a) => (
-          <article key={a.id} className={`wf-card ${a.next ? 'sage' : ''}`} style={{ padding: 18 }}>
-            <Stack gap={12}>
-              <Row justify="space-between" align="flex-start">
-                <Stack gap={4}>
-                  <H3 size={16}>
-                    {a.date} · {a.time}
-                  </H3>
-                  <Meta>{a.service} · 50 min</Meta>
-                </Stack>
-                <span className={`wf-pill ${a.status === 'Confirmada' ? '' : 'outline'}`}>{a.status}</span>
-              </Row>
-              <Row gap={8}>
-                <Icon name="location" size={12} color="var(--ink-500)" />
-                <Meta>{a.modality}</Meta>
-              </Row>
-              {a.upcoming && (
-                <>
-                  <div className="wf-divider" />
-                  <Row gap={10} wrap>
-                    <Btn small ghost icon={false}>
-                      Reagendar
-                    </Btn>
-                    <Btn small ghost icon={false}>
-                      Cancelar
-                    </Btn>
-                  </Row>
-                </>
-              )}
-            </Stack>
-          </article>
-        ))}
-      </Stack>
+      {filtered.length === 0 && (
+        <Body style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 24 }}>
+          Sin citas en esta categoría.
+        </Body>
+      )}
+      {filtered.length > 0 && (
+        <div className="portal-appts-grid">
+          {filtered.map((a) => (
+            <article key={a.id} className={`wf-card ${a.next ? 'sage' : ''}`} style={{ padding: 18 }}>
+              <Stack gap={12}>
+                <Row justify="space-between" align="flex-start">
+                  <Stack gap={4}>
+                    <H3 size={16}>
+                      {a.date} · {a.time}
+                    </H3>
+                    <Meta>{a.service} · 50 min</Meta>
+                  </Stack>
+                  <span className={`wf-pill ${a.status === 'Confirmada' ? '' : 'outline'}`}>{a.status}</span>
+                </Row>
+                <Row gap={8}>
+                  <Icon name="location" size={12} color="var(--ink-500)" />
+                  <Meta>{a.modality}</Meta>
+                </Row>
+                {a.upcoming && (
+                  <>
+                    <div className="wf-divider" />
+                    <Row gap={10} wrap>
+                      <Btn small ghost icon={false}>
+                        Reagendar
+                      </Btn>
+                      <Btn small ghost icon={false}>
+                        Cancelar
+                      </Btn>
+                    </Row>
+                  </>
+                )}
+              </Stack>
+            </article>
+          ))}
+        </div>
+      )}
 
       <Btn as={Link} to="/reservar" block ghost icon={false}>
         + Reservar nueva cita

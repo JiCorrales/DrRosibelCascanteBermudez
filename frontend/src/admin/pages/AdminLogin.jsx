@@ -50,7 +50,7 @@ export default function AdminLogin() {
         <Meta style={{ color: 'var(--sage-100)' }}>v0.1 · primera fase</Meta>
       </div>
 
-      <div style={{ padding: '60px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div className="admin-login__form" style={{ padding: '60px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--bg)' }}>
         <form
           onSubmit={handleSubmit}
           style={{ width: '100%', maxWidth: 380, margin: '0 auto' }}
@@ -119,9 +119,27 @@ export default function AdminLogin() {
         }
         @media (max-width: 899px) {
           .admin-login__panel {
-            padding: 32px 22px !important;
-            min-height: 240px !important;
-            gap: 18px !important;
+            padding: 28px 20px !important;
+            min-height: 200px !important;
+            gap: 14px !important;
+          }
+          .admin-login__panel h2 {
+            font-size: 28px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .admin-login__panel {
+            padding: 22px 18px !important;
+            min-height: 160px !important;
+          }
+          .admin-login__panel h2 {
+            font-size: 24px !important;
+          }
+          .admin-login__panel p {
+            font-size: 13px !important;
+          }
+          .admin-login__form {
+            padding: 32px 20px !important;
           }
         }
       `}</style>

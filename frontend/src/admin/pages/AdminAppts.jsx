@@ -50,9 +50,22 @@ export default function AdminAppts() {
   const initialFilter = search.get('estado') ?? 'all';
   const [filter, setFilter] = useState(FILTERS.find((f) => f.key === initialFilter)?.key ?? 'all');
   const [query, setQuery] = useState('');
+  const [isCompact, setIsCompact] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : false
+  );
 
   useEffect(() => {
     document.title = 'Citas · Admin · Rosibel';
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(max-width: 640px)');
+    const handler = (e) => setIsCompact(e.matches);
+    mql.addEventListener?.('change', handler) ?? mql.addListener(handler);
+    return () => {
+      mql.removeEventListener?.('change', handler) ?? mql.removeListener(handler);
+    };
   }, []);
 
   useEffect(() => {
@@ -71,7 +84,7 @@ export default function AdminAppts() {
       <AdminTopbar
         title="Citas"
         sub={`${filtered.length} resultado${filtered.length !== 1 ? 's' : ''}`}
-        action={<Btn small icon={false}>+ Nueva cita</Btn>}
+        action={<Btn small icon={false}>+ Nueva</Btn>}
       />
       <div className="admin-content">
         <Stack gap={20}>
@@ -93,13 +106,13 @@ export default function AdminAppts() {
           <Row gap={12} wrap>
             <input
               type="search"
-              placeholder="Buscar por nombre de cliente…"
+              placeholder="Buscar por nombre…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Buscar citas por nombre de cliente"
               style={{
                 flex: 1,
-                minWidth: 240,
+                minWidth: 200,
                 padding: '10px 14px',
                 background: '#fff',
                 border: '1px solid var(--line-2)',
@@ -110,49 +123,81 @@ export default function AdminAppts() {
             />
           </Row>
 
-          <div className="data-table">
-            <div className="data-table__head" style={{ gridTemplateColumns: COL_TEMPLATE }}>
-              <div>Fecha · Hora</div>
-              <div>Cliente</div>
-              <div>Servicio</div>
-              <div>Estado</div>
-              <div />
-            </div>
-            {filtered.length === 0 && (
-              <Body style={{ padding: 24, textAlign: 'center', color: 'var(--ink-500)' }}>
-                No hay citas que coincidan con los filtros.
-              </Body>
-            )}
-            {filtered.map((a) => {
-              const client = findClient(a.clientId);
-              const service = findService(a.serviceId);
-              return (
-                <Link
-                  to={`/admin/clientes/${a.clientId}`}
-                  key={a.id}
-                  className="data-table__row"
-                  style={{ gridTemplateColumns: COL_TEMPLATE }}
-                >
-                  <Stack gap={2}>
-                    <H3 size={13}>{formatDate(a.date)}</H3>
-                    <Meta>{a.time}</Meta>
-                  </Stack>
-                  <Row gap={12} align="center">
-                    <Photo w={32} h={32} rounded={999} label="" />
+          {filtered.length === 0 && (
+            <Body style={{ padding: 24, textAlign: 'center', color: 'var(--ink-500)' }}>
+              No hay citas que coincidan con los filtros.
+            </Body>
+          )}
+
+          {!isCompact && filtered.length > 0 && (
+            <div className="data-table">
+              <div className="data-table__head" style={{ gridTemplateColumns: COL_TEMPLATE }}>
+                <div>Fecha · Hora</div>
+                <div>Cliente</div>
+                <div>Servicio</div>
+                <div>Estado</div>
+                <div />
+              </div>
+              {filtered.map((a) => {
+                const client = findClient(a.clientId);
+                const service = findService(a.serviceId);
+                return (
+                  <Link
+                    to={`/admin/clientes/${a.clientId}`}
+                    key={a.id}
+                    className="data-table__row"
+                    style={{ gridTemplateColumns: COL_TEMPLATE }}
+                  >
                     <Stack gap={2}>
-                      <H3 size={13}>{client?.name}</H3>
-                      <Meta>{a.modality === 'online' ? 'Online' : 'Presencial'}</Meta>
+                      <H3 size={13}>{formatDate(a.date)}</H3>
+                      <Meta>{a.time}</Meta>
                     </Stack>
-                  </Row>
-                  <Meta>{service?.name ?? 'Servicio'}</Meta>
-                  <div>
-                    <StatusPill status={a.status} />
-                  </div>
-                  <Meta style={{ textAlign: 'right' }}>•••</Meta>
-                </Link>
-              );
-            })}
-          </div>
+                    <Row gap={12} align="center">
+                      <Photo w={32} h={32} rounded={999} label="" />
+                      <Stack gap={2}>
+                        <H3 size={13}>{client?.name}</H3>
+                        <Meta>{a.modality === 'online' ? 'Online' : 'Presencial'}</Meta>
+                      </Stack>
+                    </Row>
+                    <Meta>{service?.name ?? 'Servicio'}</Meta>
+                    <div>
+                      <StatusPill status={a.status} />
+                    </div>
+                    <Meta style={{ textAlign: 'right' }}>•••</Meta>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {isCompact && filtered.length > 0 && (
+            <div className="appt-card-list">
+              {filtered.map((a) => {
+                const client = findClient(a.clientId);
+                const service = findService(a.serviceId);
+                return (
+                  <Link to={`/admin/clientes/${a.clientId}`} key={a.id} className="appt-card">
+                    <div className="appt-card__head">
+                      <div>
+                        <div className="appt-card__date">{formatDate(a.date)}</div>
+                        <div className="appt-card__time">{a.time}</div>
+                      </div>
+                      <StatusPill status={a.status} />
+                    </div>
+                    <div className="appt-card__body">
+                      <Photo w={36} h={36} rounded={999} label="" />
+                      <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+                        <H3 size={14}>{client?.name}</H3>
+                        <span className="appt-card__meta">
+                          {service?.name ?? 'Servicio'} · {a.modality === 'online' ? 'Online' : 'Presencial'}
+                        </span>
+                      </Stack>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </Stack>
       </div>
     </>

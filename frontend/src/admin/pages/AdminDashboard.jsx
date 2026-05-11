@@ -20,34 +20,20 @@ export default function AdminDashboard() {
         sub={TODAY.dayLabel}
         action={
           <Btn small as={Link} to="/admin/citas">
-            + Nueva cita
+            + Nueva
           </Btn>
         }
       />
 
       <div className="admin-content">
         <Stack gap={28}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: 16,
-            }}
-          >
+          <div className="dashboard-kpis">
             {KPIS.map((k) => (
               <StatCard key={k.label} {...k} />
             ))}
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)',
-              gap: 20,
-              alignItems: 'flex-start',
-            }}
-            className="dashboard-grid"
-          >
+          <div className="dashboard-grid">
             <article className="wf-card" style={{ padding: 0 }}>
               <Row justify="space-between" align="center" style={{ padding: '16px 22px', borderBottom: '1px solid var(--line)' }}>
                 <H3 size={16}>Agenda de hoy</H3>
@@ -60,33 +46,31 @@ export default function AdminDashboard() {
                   const client = findClient(a.clientId);
                   const service = findService(a.serviceId);
                   return (
-                    <Row
+                    <div
                       key={a.id}
-                      align="center"
-                      justify="space-between"
+                      className="agenda-row"
                       style={{
-                        padding: '14px 22px',
                         borderBottom: i < today.length - 1 ? '1px solid var(--line)' : 0,
                       }}
                     >
-                      <Row gap={16} align="center">
-                        <Stack gap={2} style={{ minWidth: 70 }}>
-                          <H3 size={14}>{a.time}</H3>
-                          <Meta>{service?.dur ?? 50} min</Meta>
-                        </Stack>
+                      <div className="agenda-row__time">
+                        <H3 size={14}>{a.time}</H3>
+                        <Meta>{service?.dur ?? 50} min</Meta>
+                      </div>
+                      <div className="agenda-row__client">
                         <Photo w={36} h={36} rounded={999} label="" />
-                        <Stack gap={2}>
+                        <Stack gap={2} style={{ minWidth: 0 }}>
                           <H3 size={14}>{client?.name ?? 'Cliente'}</H3>
                           <Meta>
                             {service?.name ?? 'Servicio'} · {a.modality === 'online' ? 'Online' : 'Presencial'}
                           </Meta>
                         </Stack>
-                      </Row>
-                      <Row gap={12} align="center">
+                      </div>
+                      <div className="agenda-row__status">
                         <StatusPill status={a.status} />
                         <Icon name="arrow" size={14} color="var(--ink-500)" />
-                      </Row>
-                    </Row>
+                      </div>
+                    </div>
                   );
                 })}
                 {today.length === 0 && (
@@ -132,8 +116,58 @@ export default function AdminDashboard() {
       </div>
 
       <style>{`
+        .dashboard-kpis {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 16px;
+        }
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+          gap: 20px;
+          align-items: flex-start;
+        }
+        .agenda-row {
+          display: grid;
+          grid-template-columns: 80px 1fr auto;
+          align-items: center;
+          gap: 16px;
+          padding: 14px 22px;
+        }
+        .agenda-row__time { min-width: 0; }
+        .agenda-row__client {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+        .agenda-row__status {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
         @media (max-width: 1100px) {
-          .dashboard-grid { grid-template-columns: 1fr !important; }
+          .dashboard-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+          .dashboard-kpis {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+          }
+          .agenda-row {
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            padding: 14px 16px;
+          }
+          .agenda-row__time {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+          }
+          .agenda-row__time > :nth-child(2) { color: var(--ink-500); }
+          .agenda-row__client { grid-column: 1; }
+          .agenda-row__status { grid-column: 2; align-self: center; }
         }
       `}</style>
     </>
