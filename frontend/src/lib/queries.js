@@ -229,6 +229,46 @@ export function useMyDocuments(clientId) {
   });
 }
 
+export function useMyDocumentsByEmail(email) {
+  return useQuery({
+    queryKey: ['portal', 'documents-by-email', email],
+    queryFn: () => handle(api.fetchMyDocumentsByEmail(email)),
+    enabled: Boolean(email) || !isSupabaseConfigured,
+  });
+}
+
+export function useDocumentsForClient(clientId) {
+  return useQuery({
+    queryKey: ['admin', 'documents', clientId],
+    queryFn: () => handle(api.fetchMyDocuments(clientId)),
+    enabled: Boolean(clientId),
+  });
+}
+
+export function useCreateDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input) => handle(api.createDocument(input)),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'documents', variables.client_id] });
+      qc.invalidateQueries({ queryKey: ['portal', 'documents'] });
+      qc.invalidateQueries({ queryKey: ['portal', 'documents-by-email'] });
+    },
+  });
+}
+
+export function useDeleteDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => handle(api.deleteDocument(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'documents'] });
+      qc.invalidateQueries({ queryKey: ['portal', 'documents'] });
+      qc.invalidateQueries({ queryKey: ['portal', 'documents-by-email'] });
+    },
+  });
+}
+
 // ─────────────────────────────────────────────
 // DASHBOARD
 // ─────────────────────────────────────────────

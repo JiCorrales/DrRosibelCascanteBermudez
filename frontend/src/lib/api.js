@@ -427,6 +427,38 @@ export async function fetchMyDocuments(clientId) {
   return ok(data);
 }
 
+export async function fetchMyDocumentsByEmail(email) {
+  if (!isSupabaseConfigured) return ok(MOCK_DOCS);
+  if (!email) return ok([]);
+  const { data: client, error: e1 } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+  if (e1) return err(e1);
+  if (!client) return ok([]);
+  return fetchMyDocuments(client.id);
+}
+
+// Admin: agregar un documento compartido (modo link — la doctora pega URL externa)
+export async function createDocument({ client_id, title, kind, external_url, meta }) {
+  if (!isSupabaseConfigured) return err('Sin backend — los cambios no persisten.');
+  const { data, error } = await supabase
+    .from('documents')
+    .insert({ client_id, title, kind: kind ?? 'pdf', external_url, meta })
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
+}
+
+export async function deleteDocument(id) {
+  if (!isSupabaseConfigured) return err('Sin backend — los cambios no persisten.');
+  const { error } = await supabase.from('documents').delete().eq('id', id);
+  if (error) return err(error);
+  return ok({ id });
+}
+
 // ─────────────────────────────────────────────
 // KPIs del admin (calculados en cliente para simplicidad)
 // ─────────────────────────────────────────────

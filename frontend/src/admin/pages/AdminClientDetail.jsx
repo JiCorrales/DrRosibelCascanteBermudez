@@ -9,6 +9,9 @@ import {
   useCreateTask,
   useUpdateTask,
   useDeleteTask,
+  useDocumentsForClient,
+  useCreateDocument,
+  useDeleteDocument,
 } from '../../lib/queries.js';
 
 const TABS = ['Historial', 'Notas', 'Tareas', 'Documentos', 'Pagos'];
@@ -224,11 +227,7 @@ export default function AdminClientDetail() {
                   </Body>
                 )}
                 {tab === 'Tareas' && <TasksTab clientId={id} clientName={firstNameOf(client)} />}
-                {tab === 'Documentos' && (
-                  <Body style={{ color: 'var(--ink-500)' }}>
-                    Documentos compartidos con {firstNameOf(client)}. Aparecen en su portal.
-                  </Body>
-                )}
+                {tab === 'Documentos' && <DocumentsTab clientId={id} clientName={firstNameOf(client)} />}
                 {tab === 'Pagos' && (
                   <Body style={{ color: 'var(--ink-500)' }}>
                     Historial de pagos por sesión (SINPE, transferencia o tarjeta).
@@ -254,6 +253,14 @@ const TASK_STATUS_LABELS = {
   in_progress: 'En progreso',
   done: 'Hecha',
   skipped: 'Omitida',
+};
+
+const DOC_KIND_LABELS = {
+  pdf: 'PDF',
+  audio: 'Audio',
+  video: 'Video',
+  image: 'Imagen',
+  link: 'Enlace',
 };
 
 function TasksTab({ clientId, clientName }) {
@@ -410,6 +417,176 @@ function TasksTab({ clientId, clientName }) {
             </article>
           );
         })}
+      </Stack>
+    </Stack>
+  );
+}
+
+function DocumentsTab({ clientId, clientName }) {
+  const docsQ = useDocumentsForClient(clientId);
+  const createDoc = useCreateDocument();
+  const deleteDoc = useDeleteDocument();
+  const [title, setTitle] = useState('');
+  const [url, setUrl] = useState('');
+  const [kind, setKind] = useState('pdf');
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!title.trim() || !url.trim()) return;
+    try {
+      await createDoc.mutateAsync({
+        client_id: clientId,
+        title: title.trim(),
+        external_url: url.trim(),
+        kind,
+        meta: `${DOC_KIND_LABELS[kind]} · enlace externo`,
+      });
+      setTitle('');
+      setUrl('');
+      setKind('pdf');
+    } catch {
+      /* error visible vía createDoc.isError */
+    }
+  };
+
+  const handleDelete = (doc) => {
+    if (window.confirm(`¿Quitar "${doc.title}" del portal de ${clientName}?`)) {
+      deleteDoc.mutate(doc.id);
+    }
+  };
+
+  const docs = docsQ.data ?? [];
+
+  return (
+    <Stack gap={20}>
+      <form onSubmit={handleCreate}>
+        <Stack gap={10}>
+          <H3 size={14}>Compartir un documento con {clientName}</H3>
+          <Meta>
+            Pegá un link de Google Drive, Dropbox o cualquier servicio. {clientName} lo verá
+            en su portal y lo podrá abrir.
+          </Meta>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Título visible (ej. Plan de trabajo · 1er trimestre)"
+            required
+            style={{
+              background: '#fff',
+              border: '1px solid var(--line-2)',
+              borderRadius: 'var(--r-md)',
+              padding: '10px 14px',
+              fontSize: 14,
+              fontFamily: 'var(--sans)',
+              outline: 'none',
+              width: '100%',
+            }}
+          />
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://drive.google.com/…"
+            required
+            style={{
+              background: '#fff',
+              border: '1px solid var(--line-2)',
+              borderRadius: 'var(--r-md)',
+              padding: '10px 14px',
+              fontSize: 14,
+              fontFamily: 'var(--sans)',
+              outline: 'none',
+              width: '100%',
+            }}
+          />
+          <Row gap={8} wrap>
+            <span style={{ fontSize: 12, color: 'var(--ink-500)', alignSelf: 'center' }}>Tipo:</span>
+            {Object.entries(DOC_KIND_LABELS).map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKind(k)}
+                style={{ all: 'unset', cursor: 'pointer' }}
+                aria-pressed={kind === k}
+              >
+                <span className={`wf-pill ${kind === k ? '' : 'outline'}`}>{label}</span>
+              </button>
+            ))}
+          </Row>
+          <Row gap={8}>
+            <Btn type="submit" small icon={false} disabled={createDoc.isPending || !title.trim() || !url.trim()}>
+              {createDoc.isPending ? 'Compartiendo…' : 'Compartir documento'}
+            </Btn>
+            {createDoc.isError && (
+              <Meta style={{ color: 'var(--danger-500)' }}>
+                Error: {createDoc.error?.message}
+              </Meta>
+            )}
+          </Row>
+        </Stack>
+      </form>
+
+      <div className="wf-divider" />
+
+      <Stack gap={10}>
+        <Meta>{docs.length} documento{docs.length !== 1 ? 's' : ''} compartido{docs.length !== 1 ? 's' : ''}</Meta>
+        {docsQ.isLoading && <Body style={{ color: 'var(--ink-500)' }}>Cargando…</Body>}
+        {!docsQ.isLoading && docs.length === 0 && (
+          <Body style={{ color: 'var(--ink-500)' }}>Sin documentos compartidos.</Body>
+        )}
+        {docs.map((d) => (
+          <article key={d.id} className="wf-card" style={{ padding: 14 }}>
+            <Row gap={12} align="center">
+              <span
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: 'var(--sage-100)',
+                  color: 'var(--sage-700)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name="doc" size={16} />
+              </span>
+              <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+                <H3 size={13}>{d.title}</H3>
+                <Meta>
+                  {DOC_KIND_LABELS[d.kind] ?? d.kind}
+                  {d.external_url && ' · enlace externo'}
+                </Meta>
+              </Stack>
+              {d.external_url && (
+                <a
+                  href={d.external_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 12, color: 'var(--sage-700)' }}
+                >
+                  Abrir →
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => handleDelete(d)}
+                aria-label={`Quitar documento ${d.title}`}
+                style={{
+                  background: 'transparent',
+                  border: 0,
+                  padding: 6,
+                  cursor: 'pointer',
+                  color: 'var(--ink-300)',
+                }}
+              >
+                <Icon name="trash" size={14} />
+              </button>
+            </Row>
+          </article>
+        ))}
       </Stack>
     </Stack>
   );
