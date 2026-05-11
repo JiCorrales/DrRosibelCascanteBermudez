@@ -112,25 +112,26 @@ El bundle original viene de [claude.ai/design](https://claude.ai/design) y vive 
 
 ## Deploy
 
-Configurado para **GitHub Pages** vía Actions. URL pública: **https://jicorrales.github.io/DrRosibelCascanteBermudez/**
+Hospedado en **Vercel** vía integración con GitHub. Cualquier push a `main` dispara un build automático.
 
-Cualquier push a `main` dispara el workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) que:
+Config en raíz: [`vercel.json`](vercel.json) — `buildCommand: cd frontend && npm ci && npm run build`, `outputDirectory: frontend/dist`, rewrites SPA y cache headers para `/assets/*`.
 
-1. Corre `npm test` (frena el deploy si los unit tests rompen).
-2. Build de Vite con `VITE_BASE=/<repo-name>/` (auto-detectado del nombre del repo).
-3. Postbuild copia `dist/index.html` a `dist/404.html` (SPA fallback) y genera `.nojekyll`.
-4. Publica el artefacto a Pages.
+CI propio en GitHub Actions: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) corre tests + smoke build en cada push/PR (no deploya — eso lo hace Vercel).
 
-**Workflows manuales:** `gh workflow run "Deploy frontend to GitHub Pages" --repo JiCorrales/DrRosibelCascanteBermudez`
+### Conectar el repo a Vercel (primera vez)
 
-**Migrar a dominio propio** (ej. `rosibelpsicologa.cr`):
+1. Crear cuenta en [vercel.com](https://vercel.com) con la cuenta de GitHub.
+2. **New Project → Import Git Repository** → `JiCorrales/DrRosibelCascanteBermudez`.
+3. Framework Preset: **Other** (la config viene de `vercel.json`).
+4. Environment Variables — agregar:
+   - `VITE_SUPABASE_URL` → `https://sqhudjvritubmaodrsha.supabase.co`
+   - `VITE_SUPABASE_ANON_KEY` → (clave anon del dashboard Supabase)
+5. Deploy. Vercel devuelve una URL tipo `https://dr-rosibel-cascante-bermudez.vercel.app`.
 
-1. Comprar el dominio (Namecheap, GoDaddy, etc.).
-2. En el DNS del dominio, agregar registros A o CNAME apuntando a GitHub Pages ([guía oficial](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site)).
-3. En el repo: `Settings → Pages → Custom domain → rosibelpsicologa.cr`. Marcar "Enforce HTTPS".
-4. En el workflow, cambiar `VITE_BASE` a `/` (línea 41) y commitear. Sin base path el sitio sirve desde el root del dominio.
+### Después del primer deploy
 
-**Otras opciones de hosting si querés migrar:** Vercel, Netlify y Cloudflare Pages soportan SPA fallback nativo (no necesitan el truco del 404.html). En todos, root del proyecto = `frontend/`, build command = `npm run build`, output = `dist/`.
+- En **Supabase → Authentication → URL Configuration** poner la URL de Vercel como `Site URL` y agregarla a `Redirect URLs` (necesario para los magic links del portal del paciente).
+- Si más adelante se compra dominio propio (`rosibelpsicologa.cr`), agregarlo en Vercel → Domains y repetir el paso anterior con la nueva URL.
 
 ## Próximos pasos
 

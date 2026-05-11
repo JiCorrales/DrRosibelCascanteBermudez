@@ -16,13 +16,19 @@ Pequeñas tareas a no olvidar. Lo grande va al plan en `~/.claude/plans/`.
       2. Agregar el dominio en Resend → copiar registros TXT/MX/CNAME.
       3. Configurarlos en el DNS del dominio (Namecheap/Cloudflare/lo que sea).
       4. Esperar 5–60 min y confirmar "Verified".
+- [ ] **Conectar repo a Vercel** (reemplaza GitHub Pages):
+      1. Crear cuenta en vercel.com con la cuenta de GitHub.
+      2. New Project → Import `JiCorrales/DrRosibelCascanteBermudez`.
+      3. Framework Preset: **Other**.
+      4. Environment Variables: agregar `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (mismos valores que en `.env.local`).
+      5. Deploy. Anotar la URL pública (algo como `https://dr-rosibel-cascante-bermudez.vercel.app`).
 - [ ] **Configurar redirect URLs + Site URL en Supabase Auth**
       (https://supabase.com/dashboard/project/sqhudjvritubmaodrsha/auth/url-configuration):
-      - Site URL: `https://jicorrales.github.io/DrRosibelCascanteBermudez`
+      - Site URL: **la URL de Vercel** (ej. `https://dr-rosibel-cascante-bermudez.vercel.app`)
       - Redirect URLs:
         - `http://127.0.0.1:5173/portal/auth/callback`
         - `http://localhost:5173/portal/auth/callback`
-        - `https://jicorrales.github.io/DrRosibelCascanteBermudez/portal/auth/callback`
+        - `https://<URL-VERCEL>/portal/auth/callback`
       Sin esto, el magic link del portal del paciente no redirige correctamente.
 - [ ] **Setear `RESEND_API_KEY` en Supabase Functions secrets**
       (https://supabase.com/dashboard/project/sqhudjvritubmaodrsha/functions/secrets):
@@ -59,9 +65,9 @@ Pequeñas tareas a no olvidar. Lo grande va al plan en `~/.claude/plans/`.
 - [ ] **Calendar sync** con Google Calendar (opcional, después de pagos).
 - [ ] **Recordatorios automáticos 24h antes**: cron en Supabase que dispara la
       edge function `booking-confirmation` con un template "Recordatorio".
-- [ ] **Dominio propio**: hoy en `jicorrales.github.io/DrRosibelCascanteBermudez/`.
-      Cuando se compre `rosibelpsicologa.cr`, cambiar `VITE_BASE` en el workflow
-      a `/`, agregar el CNAME en `frontend/public/CNAME`, y configurar DNS.
+- [ ] **Dominio propio**: cuando se compre (`rosibelpsicologa.cr` u otro),
+      en Vercel → Project → Domains → Add → configurar DNS según indique Vercel.
+      Vercel emite el certificado HTTPS solo. No requiere cambios de código.
 - [ ] **Lighthouse en producción**: hoy ~95 perf en local; conviene verificar en
       Pages real con datos reales antes de promocionar.
 - [ ] **Error tracking**: integrar Sentry free tier para capturar errores en
