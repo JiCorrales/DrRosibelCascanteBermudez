@@ -45,6 +45,9 @@ jobs:
           # El base path debe coincidir EXACTAMENTE con el nombre del repo.
           # Si renombrás el repo, actualizá esto.
           VITE_BASE: /${{ github.event.repository.name }}/
+          # Supabase: si los secrets no están seteados, el frontend cae a mock data.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Configure Pages
