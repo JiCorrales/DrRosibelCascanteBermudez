@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from './api.js';
+import { isSupabaseConfigured } from './supabase.js';
 
 const handle = async (call) => {
   const { data, error } = await call;
@@ -164,6 +165,59 @@ export function useMyTasks(clientId) {
     queryKey: ['portal', 'tasks', clientId],
     queryFn: () => handle(api.fetchMyTasks(clientId)),
     enabled: Boolean(clientId),
+  });
+}
+
+export function useMyTasksByEmail(email) {
+  return useQuery({
+    queryKey: ['portal', 'tasks-by-email', email],
+    queryFn: () => handle(api.fetchMyTasksByEmail(email)),
+    // En modo mock corremos siempre (devuelve MOCK_TASKS aunque no haya email)
+    enabled: Boolean(email) || !isSupabaseConfigured,
+  });
+}
+
+export function useTasksForClient(clientId) {
+  return useQuery({
+    queryKey: ['admin', 'tasks', clientId],
+    queryFn: () => handle(api.fetchTasksForClient(clientId)),
+    enabled: Boolean(clientId),
+  });
+}
+
+export function useCreateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input) => handle(api.createTask(input)),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'tasks', variables.client_id] });
+      qc.invalidateQueries({ queryKey: ['portal', 'tasks'] });
+      qc.invalidateQueries({ queryKey: ['portal', 'tasks-by-email'] });
+    },
+  });
+}
+
+export function useUpdateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }) => handle(api.updateTask(id, patch)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'tasks'] });
+      qc.invalidateQueries({ queryKey: ['portal', 'tasks'] });
+      qc.invalidateQueries({ queryKey: ['portal', 'tasks-by-email'] });
+    },
+  });
+}
+
+export function useDeleteTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => handle(api.deleteTask(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'tasks'] });
+      qc.invalidateQueries({ queryKey: ['portal', 'tasks'] });
+      qc.invalidateQueries({ queryKey: ['portal', 'tasks-by-email'] });
+    },
   });
 }
 

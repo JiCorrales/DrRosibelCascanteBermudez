@@ -357,6 +357,64 @@ export async function fetchMyTasks(clientId) {
   return ok(data);
 }
 
+// Para el portal: resuelve el client_id por email del paciente autenticado,
+// después lista sus tareas. Como hoy no enlazamos auth.uid()→clients.auth_user_id
+// (lo hacemos a futuro), buscamos por email.
+export async function fetchMyTasksByEmail(email) {
+  // En modo mock siempre devolvemos el catálogo de prueba (independiente del email),
+  // así que el portal funciona sin sesión real durante tests/dev.
+  if (!isSupabaseConfigured) return ok(MOCK_TASKS);
+  if (!email) return ok([]);
+  const { data: client, error: e1 } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+  if (e1) return err(e1);
+  if (!client) return ok([]);
+  return fetchMyTasks(client.id);
+}
+
+// Admin: listar las tareas de un cliente
+export async function fetchTasksForClient(clientId) {
+  return fetchMyTasks(clientId);
+}
+
+// Admin: crear una tarea
+export async function createTask({ client_id, title, description, due_date }) {
+  if (!isSupabaseConfigured) return err('Sin backend — los cambios no persisten.');
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert({ client_id, title, description, due_date, status: 'pending' })
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
+}
+
+// Admin: actualizar/eliminar
+export async function updateTask(id, patch) {
+  if (!isSupabaseConfigured) return err('Sin backend — los cambios no persisten.');
+  if (patch.status === 'done' && !patch.completed_at) {
+    patch.completed_at = new Date().toISOString();
+  }
+  const { data, error } = await supabase
+    .from('tasks')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
+}
+
+export async function deleteTask(id) {
+  if (!isSupabaseConfigured) return err('Sin backend — los cambios no persisten.');
+  const { error } = await supabase.from('tasks').delete().eq('id', id);
+  if (error) return err(error);
+  return ok({ id });
+}
+
 export async function fetchMyDocuments(clientId) {
   if (!isSupabaseConfigured) return ok(MOCK_DOCS);
   if (!clientId) return ok([]);

@@ -2,7 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { AdminTopbar, StatCard, StatusPill } from '../AdminShell.jsx';
 import { Btn, Stack, Row, H3, Body, Meta, Photo, Icon } from '../../components/primitives.jsx';
-import { useClient, useClientBookings } from '../../lib/queries.js';
+import {
+  useClient,
+  useClientBookings,
+  useTasksForClient,
+  useCreateTask,
+  useUpdateTask,
+  useDeleteTask,
+} from '../../lib/queries.js';
 
 const TABS = ['Historial', 'Notas', 'Tareas', 'Documentos', 'Pagos'];
 
@@ -216,11 +223,7 @@ export default function AdminClientDetail() {
                     Las notas clínicas vivirán acá. Quedan encriptadas en reposo y solo vos las ves.
                   </Body>
                 )}
-                {tab === 'Tareas' && (
-                  <Body style={{ color: 'var(--ink-500)' }}>
-                    Acá podés asignarle tareas para hacer entre sesiones (registros, lecturas, ejercicios).
-                  </Body>
-                )}
+                {tab === 'Tareas' && <TasksTab clientId={id} clientName={firstNameOf(client)} />}
                 {tab === 'Documentos' && (
                   <Body style={{ color: 'var(--ink-500)' }}>
                     Documentos compartidos con {firstNameOf(client)}. Aparecen en su portal.
@@ -243,5 +246,171 @@ export default function AdminClientDetail() {
         }
       `}</style>
     </>
+  );
+}
+
+const TASK_STATUS_LABELS = {
+  pending: 'Pendiente',
+  in_progress: 'En progreso',
+  done: 'Hecha',
+  skipped: 'Omitida',
+};
+
+function TasksTab({ clientId, clientName }) {
+  const tasksQ = useTasksForClient(clientId);
+  const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    try {
+      await createTask.mutateAsync({
+        client_id: clientId,
+        title: title.trim(),
+        description: description.trim() || null,
+      });
+      setTitle('');
+      setDescription('');
+    } catch {
+      /* error visible vía mutation isError */
+    }
+  };
+
+  const handleStatus = (task, nextStatus) => {
+    updateTask.mutate({ id: task.id, patch: { status: nextStatus } });
+  };
+
+  const handleDelete = (task) => {
+    if (window.confirm(`¿Eliminar la tarea "${task.title}"?`)) {
+      deleteTask.mutate(task.id);
+    }
+  };
+
+  const tasks = tasksQ.data ?? [];
+
+  return (
+    <Stack gap={20}>
+      <form onSubmit={handleCreate}>
+        <Stack gap={10}>
+          <H3 size={14}>Asignar nueva tarea a {clientName}</H3>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Título de la tarea"
+            required
+            style={{
+              background: '#fff',
+              border: '1px solid var(--line-2)',
+              borderRadius: 'var(--r-md)',
+              padding: '10px 14px',
+              fontSize: 14,
+              fontFamily: 'var(--sans)',
+              outline: 'none',
+              width: '100%',
+            }}
+          />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Descripción (opcional)"
+            rows={2}
+            style={{
+              background: '#fff',
+              border: '1px solid var(--line-2)',
+              borderRadius: 'var(--r-md)',
+              padding: '10px 14px',
+              fontSize: 13,
+              fontFamily: 'var(--sans)',
+              outline: 'none',
+              width: '100%',
+              resize: 'vertical',
+              minHeight: 56,
+            }}
+          />
+          <Row gap={8}>
+            <Btn type="submit" small icon={false} disabled={createTask.isPending || !title.trim()}>
+              {createTask.isPending ? 'Asignando…' : 'Asignar tarea'}
+            </Btn>
+            {createTask.isError && (
+              <Meta style={{ color: 'var(--danger-500)' }}>
+                Error: {createTask.error?.message}
+              </Meta>
+            )}
+          </Row>
+        </Stack>
+      </form>
+
+      <div className="wf-divider" />
+
+      <Stack gap={10}>
+        <Meta>{tasks.length} tarea{tasks.length !== 1 ? 's' : ''} asignadas</Meta>
+        {tasksQ.isLoading && <Body style={{ color: 'var(--ink-500)' }}>Cargando…</Body>}
+        {!tasksQ.isLoading && tasks.length === 0 && (
+          <Body style={{ color: 'var(--ink-500)' }}>Sin tareas asignadas.</Body>
+        )}
+        {tasks.map((t) => {
+          const done = t.status === 'done';
+          return (
+            <article
+              key={t.id}
+              className="wf-card"
+              style={{ padding: 14, opacity: done ? 0.7 : 1 }}
+            >
+              <Stack gap={8}>
+                <Row justify="space-between" align="flex-start">
+                  <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
+                    <H3
+                      size={14}
+                      style={{
+                        textDecoration: done ? 'line-through' : 'none',
+                        color: done ? 'var(--ink-300)' : 'var(--ink-900)',
+                      }}
+                    >
+                      {t.title}
+                    </H3>
+                    {t.description && <Body size={13}>{t.description}</Body>}
+                    <Meta>
+                      {TASK_STATUS_LABELS[t.status] ?? t.status}
+                      {t.completed_at && ` · completada ${new Date(t.completed_at).toLocaleDateString('es-CR')}`}
+                    </Meta>
+                  </Stack>
+                  <Row gap={6}>
+                    {!done && (
+                      <Btn small ghost icon={false} onClick={() => handleStatus(t, 'done')}>
+                        Marcar hecha
+                      </Btn>
+                    )}
+                    {done && (
+                      <Btn small ghost icon={false} onClick={() => handleStatus(t, 'pending')}>
+                        Reabrir
+                      </Btn>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(t)}
+                      aria-label={`Eliminar tarea ${t.title}`}
+                      style={{
+                        background: 'transparent',
+                        border: 0,
+                        padding: 6,
+                        cursor: 'pointer',
+                        color: 'var(--ink-300)',
+                      }}
+                    >
+                      <Icon name="trash" size={14} />
+                    </button>
+                  </Row>
+                </Row>
+              </Stack>
+            </article>
+          );
+        })}
+      </Stack>
+    </Stack>
   );
 }

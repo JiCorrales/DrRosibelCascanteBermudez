@@ -1,25 +1,33 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Stack, Row, H3, Body, Meta, Icon } from '../../components/primitives.jsx';
-import { PORTAL_TASKS } from '../../mock/admin-data.js';
+import { useAuth } from '../../auth/useAuth.js';
+import { useMyTasksByEmail, useUpdateTask } from '../../lib/queries.js';
 
 const TABS = [
-  { key: 'active',    label: 'Activas' },
-  { key: 'week',      label: 'Esta semana' },
-  { key: 'done',      label: 'Completadas' },
+  { key: 'active', label: 'Activas' },
+  { key: 'done', label: 'Completadas' },
 ];
 
 export default function PortalTasks() {
   const [tab, setTab] = useState('active');
+  const { user } = useAuth();
+  const tasksQ = useMyTasksByEmail(user?.email);
+  const updateTask = useUpdateTask();
 
   useEffect(() => {
     document.title = 'Tareas · Portal · Rosibel';
   }, []);
 
   const filtered = useMemo(() => {
-    if (tab === 'done') return PORTAL_TASKS.filter((t) => t.status === 'done');
-    if (tab === 'week') return PORTAL_TASKS.filter((t) => t.status !== 'done');
-    return PORTAL_TASKS.filter((t) => t.status !== 'done');
-  }, [tab]);
+    const all = tasksQ.data ?? [];
+    if (tab === 'done') return all.filter((t) => t.status === 'done');
+    return all.filter((t) => t.status !== 'done');
+  }, [tab, tasksQ.data]);
+
+  const toggle = (t) => {
+    const next = t.status === 'done' ? 'pending' : 'done';
+    updateTask.mutate({ id: t.id, patch: { status: next } });
+  };
 
   return (
     <Stack gap={18}>
@@ -40,56 +48,84 @@ export default function PortalTasks() {
         ))}
       </Row>
 
-      {filtered.length === 0 && (
+      {tasksQ.isLoading && (
         <Body style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 24 }}>
-          Sin tareas en esta categoría.
+          Cargando…
         </Body>
       )}
+
+      {tasksQ.isError && (
+        <Body
+          role="alert"
+          style={{
+            padding: '12px 16px',
+            background: 'var(--danger-100)',
+            color: 'var(--danger-500)',
+            border: '1px solid rgba(184,84,80,0.28)',
+            borderRadius: 'var(--r-md)',
+          }}
+        >
+          No pudimos cargar tus tareas: {tasksQ.error?.message ?? 'error desconocido'}
+        </Body>
+      )}
+
+      {!tasksQ.isLoading && !tasksQ.isError && filtered.length === 0 && (
+        <Body style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 24 }}>
+          {tab === 'done'
+            ? 'Aún no hay tareas completadas.'
+            : 'Sin tareas activas. Las que te asigne Rosibel aparecerán acá.'}
+        </Body>
+      )}
+
       {filtered.length > 0 && (
         <div className="portal-tasks-grid">
           {filtered.map((t) => {
             const done = t.status === 'done';
+            const pending = updateTask.isPending && updateTask.variables?.id === t.id;
             return (
               <article key={t.id} className="wf-card" style={{ padding: 18 }}>
                 <Stack gap={10}>
                   <Row gap={12} align="flex-start">
-                    <span
+                    <button
+                      type="button"
+                      onClick={() => toggle(t)}
+                      disabled={pending}
+                      aria-label={done ? 'Marcar como pendiente' : 'Marcar como hecha'}
                       style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 4,
+                        width: 22,
+                        height: 22,
+                        borderRadius: 5,
                         border: '1.5px solid var(--sage-500)',
-                        background: done ? 'var(--sage-500)' : 'transparent',
+                        background: done ? 'var(--sage-500)' : '#fff',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
-                        marginTop: 3,
+                        marginTop: 2,
+                        cursor: pending ? 'wait' : 'pointer',
+                        padding: 0,
                       }}
                     >
-                      {done && <Icon name="check" size={10} color="var(--bg)" />}
-                    </span>
+                      {done && <Icon name="check" size={12} color="var(--bg)" />}
+                    </button>
                     <Stack gap={4} style={{ flex: 1 }}>
-                      <H3 size={15}>{t.title}</H3>
-                      <Body size={13}>{t.description}</Body>
-                      <Meta style={{ paddingTop: 6 }}>{t.meta}</Meta>
+                      <H3
+                        size={15}
+                        style={{
+                          textDecoration: done ? 'line-through' : 'none',
+                          color: done ? 'var(--ink-300)' : 'var(--ink-900)',
+                        }}
+                      >
+                        {t.title}
+                      </H3>
+                      {t.description && <Body size={13}>{t.description}</Body>}
+                      {t.completed_at && (
+                        <Meta style={{ paddingTop: 4 }}>
+                          Completada el {new Date(t.completed_at).toLocaleDateString('es-CR')}
+                        </Meta>
+                      )}
                     </Stack>
                   </Row>
-                  {t.progress && (
-                    <Row gap={4} style={{ paddingLeft: 30 }}>
-                      {t.progress.map((on, i) => (
-                        <span
-                          key={i}
-                          style={{
-                            flex: 1,
-                            height: 6,
-                            borderRadius: 2,
-                            background: on ? 'var(--sage-500)' : 'var(--sage-100)',
-                          }}
-                        />
-                      ))}
-                    </Row>
-                  )}
                 </Stack>
               </article>
             );
