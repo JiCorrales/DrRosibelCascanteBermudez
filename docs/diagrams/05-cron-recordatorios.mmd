@@ -1,0 +1,25 @@
+%% Cron diario - recordatorios de tareas y citas
+%% Job: pg_cron 07:00 CR -> SQL send_task_reminders() -> edge functions
+sequenceDiagram
+  participant Cron as pg_cron (07:00 CR diario)
+  participant SQL as Funcion SQL send_task_reminders()
+  participant DB as Postgres (tasks, bookings)
+  participant EFT as Edge task-reminder
+  participant EFB as Edge booking-confirmation (template=reminder)
+  participant RS as Resend API
+  participant Pat as Bandeja Paciente
+  Cron->>SQL: invoke daily
+  SQL->>DB: SELECT tasks due hoy/manana NOT done
+  DB-->>SQL: rows
+  loop por cada tarea pendiente
+    SQL->>EFT: POST task payload
+    EFT->>RS: send email recordatorio tarea
+    RS-->>Pat: "Tu tarea hoy/manana"
+  end
+  SQL->>DB: SELECT bookings en proximas 24h confirmed
+  DB-->>SQL: rows
+  loop por cada cita
+    SQL->>EFB: POST booking payload (template=reminder)
+    EFB->>RS: send email + .ics
+    RS-->>Pat: "Manana tenemos sesion"
+  end

@@ -1,0 +1,17 @@
+%% Sitio publico - rutas y navegacion
+%% Cubre HomePage, Sobre, Servicios, Reservar y enlaces ocultos a admin/portal
+graph LR
+  Home["/  Homepage (Hero + secciones)"] --> Sobre["/sobre"]
+  Home --> Servicios["/servicios"]
+  Home --> Reservar["/reservar"]
+  Servicios --> Detalle["/servicios/:id"]
+  Detalle -->|"CTA Reservar"| Reservar
+  Sobre --> Reservar
+  Home --> Footer["Footer global"]
+  Footer --> Privacidad["/privacidad"]
+  Footer --> Terminos["/terminos"]
+  Footer --> AdminLink["/admin/login (oculto)"]
+  Footer --> PortalLink["/portal/login (oculto)"]
+  Reservar --> Confirm["Step 4: Confirmacion"]
+  Confirm -->|"WhatsApp / .ics"| Externos["Email + Calendar + WA"]
+  Home -.->|"404 catch-all"| NotFound["NotFoundPage"]

@@ -1,0 +1,24 @@
+%% Modulo Redes - generacion hibrida de contenido para IG/FB
+%% Editor: frontend/src/admin/pages/AdminContentEditor.jsx
+%% Plantillas: frontend/src/admin/content/templates/*
+flowchart TD
+  Open(["Doctora abre /admin/redes/nuevo"]) --> PickTopic["1. Elegir tema (TOPICS)"]
+  PickTopic --> PickAngle["2. Angulo: educativo / inspirador / invitacion / mito"]
+  PickAngle --> PickFormat["3. Formato: post / story / carousel"]
+  PickFormat --> PickTemplate["Plantilla visual (auto por angulo)"]
+  PickTemplate --> Generate["composeCopy() determinista -> headline + body + caption"]
+  Generate --> Render["renderToCanvas() preview en vivo"]
+  Render --> EditTexts["Editar titular / cuerpo / caption manualmente"]
+  EditTexts --> Variar{"Variar con IA?"}
+  Variar -->|"no"| Save
+  Variar -->|"si"| KeyOk{"settings.apiKey valida?"}
+  KeyOk -->|"no"| GoSettings["Ir a /admin/redes/ajustes y pegar API key"]
+  GoSettings --> EditTexts
+  KeyOk -->|"si"| ClaudeCall["variateCopyWithClaude() -> Anthropic Haiku 4.5"]
+  ClaudeCall --> NewCaption["Reemplaza caption con variacion"]
+  NewCaption --> Save["Guardar borrador / programado (localStorage)"]
+  Save --> Export{"Que descarga?"}
+  Export -->|"post / story"| PNG["downloadCanvasAsPNG()"]
+  Export -->|"carousel"| PNGs["downloadCarouselSlides() -> N imagenes"]
+  PNG --> Manual["Doctora sube manualmente a IG/FB"]
+  PNGs --> Manual

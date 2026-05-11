@@ -1,0 +1,25 @@
+%% Autenticacion - admin (password) y portal paciente (magic link)
+%% Hook: frontend/src/auth/useAuth.js. Modo demo + Supabase real conviven.
+flowchart TD
+  Start(["Usuario entra"]) --> Choice{"Que rol?"}
+  Choice -->|"admin"| AdminLogin["/admin/login"]
+  Choice -->|"paciente"| PortalLogin["/portal/login"]
+  AdminLogin --> AdminMode{"isSupabaseConfigured?"}
+  AdminMode -->|"no, demo"| AdminFake["signIn('admin', { email }) -> localStorage"]
+  AdminMode -->|"si"| AdminPwd["signIn('admin-password', { email, password })"]
+  AdminPwd --> AdminOk{"Credenciales OK?"}
+  AdminOk -->|"no"| AdminLogin
+  AdminOk -->|"si"| AdminSession["Supabase session + role admin"]
+  AdminFake --> AdminSession
+  AdminSession --> ProtectedAdmin["ProtectedRoute role=admin"]
+  ProtectedAdmin --> AdminApp["/admin (AdminShell)"]
+  PortalLogin --> PortalMode{"isSupabaseConfigured?"}
+  PortalMode -->|"no, demo"| PortalFake["signIn('patient', { email }) -> localStorage"]
+  PortalMode -->|"si"| Magic["signIn('patient-magic-link', { email, redirectTo })"]
+  Magic --> EmailSent["Pantalla 'Te enviamos un enlace'"]
+  EmailSent --> ClickLink["Paciente abre el correo y toca el link"]
+  ClickLink --> Callback["/portal/auth/callback (Supabase verifica)"]
+  Callback --> PortalSession["session + role patient"]
+  PortalFake --> PortalSession
+  PortalSession --> ProtectedPortal["ProtectedRoute role=patient"]
+  ProtectedPortal --> PortalApp["/portal (PortalShell)"]

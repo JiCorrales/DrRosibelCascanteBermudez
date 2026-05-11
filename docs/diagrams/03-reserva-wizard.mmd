@@ -1,0 +1,24 @@
+%% Reserva wizard 4 pasos (paciente)
+%% Implementado en frontend/src/pages/ReservarPage.jsx
+flowchart TD
+  Start(["Paciente entra a /reservar"]) --> S1["Paso 1: elegir servicio"]
+  S1 -->|"servicio seleccionado"| S2["Paso 2: dia y hora"]
+  S2 --> LoadDays["useOpenDays(month, durationMin)"]
+  LoadDays --> Pick["Selecciona fecha del calendario"]
+  Pick --> LoadSlots["useSlotsForDay(date, durationMin)"]
+  LoadSlots --> SlotPick{"Slot disponible?"}
+  SlotPick -->|"no, sin horarios"| Pick
+  SlotPick -->|"si"| ChooseSlot["Selecciona slot HH:MM"]
+  ChooseSlot --> S3["Paso 3: datos paciente"]
+  S3 --> Validate{"Nombre + email + tel + consent?"}
+  Validate -->|"no"| S3
+  Validate -->|"si"| Submit["createBooking.mutateAsync()"]
+  Submit --> Insert["INSERT bookings (Postgres + RLS)"]
+  Insert --> Conflict{"Indice no_overlap OK?"}
+  Conflict -->|"violado / duplicate"| ErrSlot["Mostrar 'horario tomado' + refetch slots"]
+  ErrSlot --> S2
+  Conflict -->|"OK"| Edge["invoke booking-confirmation (fire-and-forget)"]
+  Edge --> S4["Paso 4: pantalla de confirmacion"]
+  S4 -->|"WhatsApp boton"| WA["wa.me con texto prellenado"]
+  S4 -->|"calendar"| Ics[".ics adjunto al correo"]
+  S4 -->|"reservar otra"| S1

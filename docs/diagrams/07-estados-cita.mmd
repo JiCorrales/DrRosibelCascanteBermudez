@@ -1,0 +1,12 @@
+%% Estados de una cita (state diagram)
+%% Estados alineados con database/README.md y mock/admin-data.js
+stateDiagram-v2
+  [*] --> pending: Paciente reserva en /reservar
+  pending --> confirmed: Doctora confirma en /admin/citas
+  pending --> cancelled: Cancelada antes de confirmar
+  confirmed --> completed: Sesion realizada
+  confirmed --> cancelled: Cancelada con > 24h (paciente o doctora)
+  confirmed --> no_show: Paciente no se presento
+  cancelled --> [*]
+  completed --> [*]
+  no_show --> [*]

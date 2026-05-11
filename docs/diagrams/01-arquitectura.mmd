@@ -1,0 +1,25 @@
+%% Arquitectura general del sistema
+%% Frontend, Supabase, Edge Functions, Resend, Anthropic, pg_cron
+graph LR
+  Visitor["Visitante / Paciente"] --> Frontend["Frontend Vite + React (Vercel)"]
+  Doctor["Doctora Rosibel"] --> Frontend
+  Frontend --> Public["Sitio publico /"]
+  Frontend --> Admin["Admin /admin/*"]
+  Frontend --> Portal["Portal /portal/*"]
+  Frontend -->|"REST + RLS"| Supabase["Supabase Postgres"]
+  Frontend -->|"signIn / OAuth"| SupaAuth["Supabase Auth"]
+  Frontend -->|"invoke"| EdgeBooking["Edge: booking-confirmation"]
+  Frontend -->|"localStorage"| LocalRedes["Redes (browser-only)"]
+  Frontend -->|"fetch directo"| Anthropic["Anthropic API (Haiku 4.5)"]
+  PgCron["pg_cron diario 07:00 CR"] --> SqlReminder["SQL send_task_reminders()"]
+  SqlReminder -->|"invoke"| EdgeTask["Edge: task-reminder"]
+  EdgeBooking -->|"POST"| Resend["Resend API"]
+  EdgeTask -->|"POST"| Resend
+  Resend -->|"email + .ics"| Inbox["Bandeja paciente / doctora"]
+  Inbox -->|"link"| WA["WhatsApp wa.me"]
+  Supabase --> EdgeBooking
+  Supabase --> EdgeTask
+  classDef ext fill:#FBE9E1,stroke:#8B5A6B,color:#3D2832;
+  classDef core fill:#D9E4D7,stroke:#5A7A5C,color:#1F3024;
+  class Anthropic,Resend,WA,Inbox ext;
+  class Supabase,SupaAuth,EdgeBooking,EdgeTask,Frontend core;

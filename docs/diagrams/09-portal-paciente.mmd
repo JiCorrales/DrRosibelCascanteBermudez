@@ -1,0 +1,21 @@
+%% Portal paciente - flujo principal
+%% Mobile-first, max-width 480px, bottom tab bar de 4 pestanas
+graph TD
+  Login["/portal/login"] --> Auth{"signIn paciente"}
+  Auth -->|"OK"| Home["/portal (PortalHome)"]
+  Home --> TabHome["Tab: Inicio - proxima cita + tareas pendientes"]
+  Home --> TabTareas["Tab: Tareas /portal/tareas"]
+  Home --> TabCitas["Tab: Citas /portal/citas"]
+  Home --> TabDocs["Tab: Documentos /portal/documentos"]
+  TabCitas --> ListUpcoming["useMyBookings(email) -> tabs Proximas / Pasadas"]
+  ListUpcoming --> ApptCard["Card por cita (estado, modalidad)"]
+  ApptCard --> Action{"Accion?"}
+  Action -->|"Reagendar"| Reservar["Redirige a /reservar"]
+  Action -->|"Cancelar"| Check{"Mas de 24h?"}
+  Check -->|"no"| ErrWA["Mensaje: escribir por WhatsApp"]
+  Check -->|"si"| Confirm["window.confirm()"]
+  Confirm -->|"OK"| Cancel["cancelMyBooking.mutateAsync()"]
+  Cancel --> Refresh["Refresh + correo de confirmacion"]
+  TabTareas --> ListTasks["Lista de tareas asignadas"]
+  ListTasks --> MarkDone["Marcar como hecha (UPDATE tasks)"]
+  TabDocs --> Docs["Documentos compartidos por la doctora (link)"]

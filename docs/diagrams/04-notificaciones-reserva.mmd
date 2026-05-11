@@ -1,0 +1,23 @@
+%% Notificaciones de reserva (sequence)
+%% Edge function: supabase/functions/booking-confirmation/index.ts
+sequenceDiagram
+  participant P as Paciente
+  participant FE as Frontend (ReservarPage)
+  participant DB as Supabase Postgres
+  participant EF as Edge booking-confirmation
+  participant RS as Resend API
+  participant Doc as Bandeja Doctora
+  participant Pat as Bandeja Paciente
+  P->>FE: Confirma reserva (paso 3)
+  FE->>DB: INSERT bookings
+  DB-->>FE: row + id
+  FE->>EF: POST { booking payload }
+  EF->>EF: buildIcs(booking) + base64
+  par Notificaciones paralelas
+    EF->>RS: send emailToAdmin + ics
+    EF->>RS: send emailToPatient + ics
+  end
+  RS-->>Doc: Correo "Nueva reserva" + .ics
+  RS-->>Pat: Correo "Tu cita esta reservada" + .ics
+  EF-->>FE: { ok, sent: [...] }
+  FE-->>P: Pantalla "Listo, nos vemos pronto"

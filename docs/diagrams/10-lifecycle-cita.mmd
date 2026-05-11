@@ -1,0 +1,24 @@
+%% Lifecycle completo de una cita - cross-actor (paciente + doctora + sistema)
+%% Combina creacion, confirmacion, recordatorio T-24h y cierre
+sequenceDiagram
+  participant Pa as Paciente
+  participant FE as Frontend
+  participant DB as Postgres
+  participant EF as Edge booking-confirmation
+  participant RS as Resend
+  participant Cron as pg_cron
+  participant Do as Doctora (admin)
+  Pa->>FE: Wizard /reservar
+  FE->>DB: INSERT bookings (status=pending)
+  FE->>EF: POST notify (template=confirmation)
+  EF->>RS: emails admin + paciente + .ics
+  Do->>FE: Abre /admin/citas?estado=pending
+  Do->>DB: UPDATE status=confirmed
+  Note over Cron,RS: Dia anterior a la cita (07:00 CR)
+  Cron->>DB: SELECT bookings T+24h confirmed
+  Cron->>EF: POST notify (template=reminder)
+  EF->>RS: email + .ics "Manana tenemos sesion"
+  Note over Pa,Do: Dia de la cita
+  Pa->>Do: Sesion (online o presencial)
+  Do->>FE: Marca completed o no_show en /admin/citas
+  Do->>DB: UPDATE status final
