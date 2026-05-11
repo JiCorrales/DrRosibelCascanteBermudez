@@ -123,6 +123,32 @@ function drawDot(ctx, x, y, r, color) {
   ctx.fill();
 }
 
+// Cache de HTMLImageElement por DataURL para no recargar la foto en cada
+// render del canvas (preview se redibuja en cada cambio de texto).
+const _imageCache = new Map();
+
+export function loadImageFromDataUrl(dataUrl) {
+  if (!dataUrl) return Promise.resolve(null);
+  if (_imageCache.has(dataUrl)) return Promise.resolve(_imageCache.get(dataUrl));
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      _imageCache.set(dataUrl, img);
+      resolve(img);
+    };
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
+
+// Pre-carga la foto de marca (si existe) y devuelve un brand enriquecido con
+// `photoImage: HTMLImageElement | null` listo para usar en plantillas con foto.
+export async function withBrandImage(brand) {
+  if (!brand?.photoDataUrl) return brand;
+  const photoImage = await loadImageFromDataUrl(brand.photoDataUrl);
+  return { ...brand, photoImage };
+}
+
 function drawHandleBar(ctx, w, h, brand, color = PALETTE.ink900) {
   if (!brand?.handle) return;
   ctx.fillStyle = color;
@@ -258,6 +284,173 @@ function postPromoServicio(ctx, w, h, { headline, body, brand }) {
   }
 }
 
+function postListaNumerada(ctx, w, h, { headline, body, brand }) {
+  clearCanvas(ctx, w, h, PALETTE.bg);
+
+  // bloque vertical sage a la izquierda
+  ctx.fillStyle = PALETTE.sage100;
+  ctx.fillRect(0, 0, 240, h);
+
+  // número gigante "01"
+  ctx.fillStyle = PALETTE.sage500;
+  ctx.font = `500 280px ${SERIF}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('01', 120, h / 2 - 40);
+
+  // titular a la derecha
+  ctx.fillStyle = PALETTE.ink900;
+  ctx.font = `500 54px ${SERIF}`;
+  const titleH = drawWrappedText(ctx, headline, 290, 140, w - 380, 66, 'left');
+
+  // cuerpo a la derecha
+  ctx.fillStyle = PALETTE.ink700;
+  ctx.font = `400 26px ${SANS}`;
+  drawWrappedText(ctx, body, 290, 140 + titleH + 50, w - 380, 42, 'left');
+
+  drawHandleBar(ctx, w, h, brand);
+}
+
+function postMancha(ctx, w, h, { headline, body, brand }) {
+  clearCanvas(ctx, w, h, PALETTE.bg);
+
+  // mancha circular sage que sale del costado
+  const grad = ctx.createRadialGradient(w * 0.85, h * 0.25, 50, w * 0.85, h * 0.25, w * 0.8);
+  grad.addColorStop(0, PALETTE.sage300);
+  grad.addColorStop(0.5, PALETTE.sage100);
+  grad.addColorStop(1, PALETTE.bg);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // eyebrow
+  ctx.fillStyle = PALETTE.sage700;
+  ctx.font = `500 22px ${SANS}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('REFLEXIÓN', 80, 80);
+
+  // titular grande centrado a la izquierda
+  ctx.fillStyle = PALETTE.ink900;
+  ctx.font = `500 64px ${SERIF}`;
+  const lines = wrapText(ctx, headline, w * 0.6);
+  const totalH = lines.length * 80;
+  const startY = (h - totalH) / 2;
+  drawWrappedText(ctx, headline, 80, startY, w * 0.6, 80, 'left');
+
+  // body abajo
+  if (body) {
+    ctx.fillStyle = PALETTE.ink700;
+    ctx.font = `400 28px ${SANS}`;
+    drawWrappedText(ctx, body, 80, h - 280, w * 0.6, 42, 'left');
+  }
+
+  drawHandleBar(ctx, w, h, brand);
+}
+
+function postRetratoCita(ctx, w, h, { headline, brand }) {
+  clearCanvas(ctx, w, h, PALETTE.bg);
+
+  // Si hay foto, ocupa la mitad izquierda. Si no, fallback a banda sage.
+  const photoSize = w * 0.5;
+  if (brand?.photoImage) {
+    // Calcular crop centrado para llenar el cuadrado izquierdo
+    const img = brand.photoImage;
+    const srcRatio = img.width / img.height;
+    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+    if (srcRatio > 1) {
+      sw = img.height;
+      sx = (img.width - sw) / 2;
+    } else {
+      sh = img.width;
+      sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, photoSize, h);
+  } else {
+    // Placeholder con diagonal hatch (mismo estilo que wf-photo)
+    ctx.fillStyle = PALETTE.bg2;
+    ctx.fillRect(0, 0, photoSize, h);
+    ctx.fillStyle = PALETTE.ink300;
+    ctx.font = `500 18px ${SANS}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Sin foto', photoSize / 2, h / 2);
+    ctx.font = `400 13px ${SANS}`;
+    ctx.fillText('Subila en Ajustes', photoSize / 2, h / 2 + 28);
+  }
+
+  // Lado derecho: cita y firma
+  const rightX = photoSize + 60;
+  const rightW = w - photoSize - 120;
+
+  // Comilla decorativa
+  ctx.fillStyle = PALETTE.sage500;
+  ctx.font = `400 160px ${SERIF}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('"', rightX, 80);
+
+  // Cita
+  ctx.fillStyle = PALETTE.ink900;
+  ctx.font = `500 40px ${SERIF}`;
+  const lines = wrapText(ctx, headline, rightW);
+  const totalH = lines.length * 54;
+  const startY = (h - totalH) / 2;
+  drawWrappedText(ctx, headline, rightX, startY, rightW, 54, 'left');
+
+  // Firma
+  if (brand?.signature) {
+    ctx.fillStyle = PALETTE.ink500;
+    ctx.font = `500 20px ${SANS}`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`— ${brand.signature}`, rightX + rightW, h - 180);
+  }
+
+  // Handle abajo derecha
+  if (brand?.handle) {
+    ctx.fillStyle = PALETTE.ink900;
+    ctx.font = `500 18px ${SANS}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    drawDot(ctx, rightX, h - 70, 8, PALETTE.sage500);
+    ctx.fillText(brand.handle, rightX + 18, h - 70);
+  }
+}
+
+function postDobleColumna(ctx, w, h, { headline, body, brand }) {
+  clearCanvas(ctx, w, h, PALETTE.bg);
+
+  // división vertical en el medio
+  ctx.strokeStyle = PALETTE.sage300;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(w / 2, 140);
+  ctx.lineTo(w / 2, h - 140);
+  ctx.stroke();
+
+  // columna izquierda: titular grande
+  ctx.fillStyle = PALETTE.ink900;
+  ctx.font = `500 52px ${SERIF}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  const leftLines = wrapText(ctx, headline, w / 2 - 160);
+  const leftH = leftLines.length * 64;
+  drawWrappedText(ctx, headline, 80, h / 2 - leftH / 2, w / 2 - 160, 64, 'left');
+
+  // columna derecha: eyebrow + body
+  ctx.fillStyle = PALETTE.sage700;
+  ctx.font = `500 22px ${SANS}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('PARA RECORDAR', w / 2 + 80, 200);
+
+  ctx.fillStyle = PALETTE.ink700;
+  ctx.font = `400 28px ${SANS}`;
+  drawWrappedText(ctx, body, w / 2 + 80, 270, w / 2 - 160, 44, 'left');
+
+  drawHandleBar(ctx, w, h, brand);
+}
+
 // ─────── STORY 1080×1920 ───────
 
 function storyTipRapido(ctx, w, h, { headline, body, brand }) {
@@ -351,6 +544,98 @@ function storyCita(ctx, w, h, { headline, brand }) {
   }
 }
 
+function storyStat(ctx, w, h, { headline, body, brand }) {
+  clearCanvas(ctx, w, h, PALETTE.bg);
+
+  // banda sage superior
+  ctx.fillStyle = PALETTE.sage500;
+  ctx.fillRect(0, 0, w, 240);
+
+  // eyebrow blanco
+  ctx.fillStyle = PALETTE.bg;
+  ctx.font = `500 32px ${SANS}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('DATO PARA PENSAR', w / 2, 130);
+
+  // número/stat gigante (usa headline si es corto, sino primera línea de body)
+  const statText = headline.length <= 12 ? headline : (body.split('\n')[0] ?? headline).slice(0, 12);
+
+  ctx.fillStyle = PALETTE.ink900;
+  ctx.font = `500 320px ${SERIF}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(statText, w / 2, h / 2);
+
+  // body debajo
+  ctx.fillStyle = PALETTE.ink700;
+  ctx.font = `400 38px ${SANS}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const caption = headline.length > 12 ? headline : body;
+  drawWrappedText(ctx, caption, 100, h - 520, w - 200, 56, 'center');
+
+  // handle abajo
+  if (brand?.handle) {
+    ctx.fillStyle = PALETTE.ink500;
+    ctx.font = `500 28px ${SANS}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(brand.handle, w / 2, h - 120);
+  }
+}
+
+function storyPregunta(ctx, w, h, { headline, brand }) {
+  clearCanvas(ctx, w, h, PALETTE.bg3);
+
+  // eyebrow superior
+  ctx.fillStyle = PALETTE.sage700;
+  ctx.font = `500 30px ${SANS}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('PREGUNTA DEL DÍA', 90, 240);
+
+  // pregunta grande en el medio
+  ctx.fillStyle = PALETTE.ink900;
+  ctx.font = `500 76px ${SERIF}`;
+  const lines = wrapText(ctx, headline, w - 180);
+  const totalH = lines.length * 96;
+  drawWrappedText(ctx, headline, 90, 380, w - 180, 96, 'left');
+
+  // caja de respuesta visual (estilo input)
+  const boxY = 380 + totalH + 100;
+  ctx.fillStyle = PALETTE.bg;
+  ctx.strokeStyle = PALETTE.sage300;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(90, boxY, w - 180, 200, 16) : ctx.rect(90, boxY, w - 180, 200);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = PALETTE.ink300;
+  ctx.font = `400 28px ${SANS}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Tocá para responder…', 120, boxY + 100);
+
+  // CTA inferior
+  ctx.fillStyle = PALETTE.sage500;
+  const ctaY = h - 280;
+  ctx.fillRect(90, ctaY, w - 180, 110);
+  ctx.fillStyle = PALETTE.bg;
+  ctx.font = `500 34px ${SANS}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Respondé en el sticker ✨', w / 2, ctaY + 55);
+
+  // handle
+  if (brand?.handle) {
+    ctx.fillStyle = PALETTE.ink500;
+    ctx.font = `500 26px ${SANS}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(brand.handle, w / 2, h - 100);
+  }
+}
+
 // ─────── CARRUSEL — cada slide 1080×1080 ───────
 
 function carouselSlide(ctx, w, h, { title, body, brand, index, total, isFirst, isLast }) {
@@ -408,14 +693,20 @@ function carouselSlide(ctx, w, h, { title, body, brand, index, total, isFirst, i
 
 export const TEMPLATES = {
   post: {
-    cita:    { label: 'Cita destacada',  draw: postCitaDestacada },
-    tip:     { label: 'Tip educativo',   draw: postTipEducativo },
-    pregunta:{ label: 'Pregunta abierta',draw: postPreguntaAbierta },
-    promo:   { label: 'Invitación',      draw: postPromoServicio },
+    cita:     { label: 'Cita destacada',   draw: postCitaDestacada },
+    tip:      { label: 'Tip educativo',    draw: postTipEducativo },
+    pregunta: { label: 'Pregunta abierta', draw: postPreguntaAbierta },
+    promo:    { label: 'Invitación',       draw: postPromoServicio },
+    lista:    { label: 'Lista numerada',   draw: postListaNumerada },
+    mancha:   { label: 'Mancha de color',  draw: postMancha },
+    doble:    { label: 'Doble columna',    draw: postDobleColumna },
+    retrato:  { label: 'Retrato + cita',   draw: postRetratoCita,  needsPhoto: true },
   },
   story: {
-    tip:  { label: 'Tip rápido',  draw: storyTipRapido },
-    cita: { label: 'Cita',        draw: storyCita },
+    tip:      { label: 'Tip rápido',  draw: storyTipRapido },
+    cita:     { label: 'Cita',        draw: storyCita },
+    stat:     { label: 'Dato grande', draw: storyStat },
+    pregunta: { label: 'Pregunta',    draw: storyPregunta },
   },
   carousel: {
     classic: { label: 'Clásico (5 slides)', draw: carouselSlide },
@@ -436,12 +727,16 @@ export function pickTemplate(format, templateKey) {
 
 export function defaultTemplateForAngle(angle, format) {
   if (format === 'carousel') return 'classic';
-  if (format === 'story') return angle === 'pregunta' ? 'cita' : 'tip';
+  if (format === 'story') {
+    if (angle === 'pregunta') return 'pregunta';
+    if (angle === 'tip') return 'tip';
+    return 'cita';
+  }
   // post
   switch (angle) {
     case 'pregunta':         return 'pregunta';
-    case 'mito-vs-realidad': return 'tip';
-    case 'tip':              return 'tip';
+    case 'mito-vs-realidad': return 'doble';
+    case 'tip':              return 'lista';
     case 'invitacion':       return 'promo';
     default:                 return 'cita';
   }

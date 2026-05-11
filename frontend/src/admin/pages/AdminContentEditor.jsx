@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { AdminTopbar } from '../AdminShell.jsx';
 import { Btn, Stack, Row, H3, Body, Meta, Eyebrow } from '../../components/primitives.jsx';
 import Icon from '../../components/Icon.jsx';
-import { TOPICS, ANGLES, FORMATS, findTopic, CATEGORIES } from '../content/topics.js';
+import { TOPICS, ANGLES, FORMATS, findTopic, CATEGORIES, getAllTopics } from '../content/topics.js';
 import { composeCopy } from '../content/templates/copy.js';
 import {
   TEMPLATES,
@@ -14,9 +14,11 @@ import {
   renderCarouselSlide,
   downloadCanvasAsPNG,
   downloadCarouselSlides,
+  withBrandImage,
 } from '../content/templates/visual.js';
 import { getSettings, savePost, getPost } from '../content/storage.js';
 import { variateCopyWithClaude, ClaudeError, isApiKeyValid } from '../content/claude.js';
+import RedesNav from '../content/RedesNav.jsx';
 
 function pickFirstTopic() {
   return TOPICS[0];
@@ -43,6 +45,7 @@ export default function AdminContentEditor() {
   const [aiError, setAiError] = useState(null);
   const [savedAt, setSavedAt] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [downloadedAt, setDownloadedAt] = useState(null);
   const [postId, setPostId] = useState(editId);
 
   const topic = useMemo(() => (topicId ? findTopic(topicId) : null), [topicId]);
@@ -98,16 +101,26 @@ export default function AdminContentEditor() {
   }, [topic?.id, angle, format]);
 
   // ─────── Render del canvas en cada cambio ───────
+  // withBrandImage pre-carga la foto (si la plantilla la necesita) y devuelve
+  // un brand enriquecido con .photoImage. La promesa se resuelve sync si la
+  // imagen ya está en cache.
   useEffect(() => {
+    let cancelled = false;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const post = { headline, body, slides };
-    if (format === 'carousel') {
-      renderCarouselSlide(canvas, { post, brand: settings.brand, index: currentSlide });
-    } else {
-      renderToCanvas(canvas, { format, templateKey, post, brand: settings.brand });
-    }
+    (async () => {
+      const brand = await withBrandImage(settings.brand);
+      if (cancelled) return;
+      const post = { headline, body, slides };
+      if (format === 'carousel') {
+        renderCarouselSlide(canvas, { post, brand, index: currentSlide });
+      } else {
+        renderToCanvas(canvas, { format, templateKey, post, brand });
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [headline, body, slides, currentSlide, format, templateKey, settings.brand]);
 
   // ─────── Acciones ───────
@@ -167,22 +180,28 @@ export default function AdminContentEditor() {
 
   const handleDownloadImage = async () => {
     const baseName = `${topic?.id ?? 'post'}-${format}`;
+    const brand = await withBrandImage(settings.brand);
     if (format === 'carousel') {
       await downloadCarouselSlides({
         post: { slides },
-        brand: settings.brand,
+        brand,
         baseName,
       });
-      return;
+    } else {
+      const canvas = document.createElement('canvas');
+      renderToCanvas(canvas, {
+        format,
+        templateKey,
+        post: { headline, body, slides },
+        brand,
+      });
+      await downloadCanvasAsPNG(canvas, `${baseName}.png`);
     }
-    const canvas = document.createElement('canvas');
-    renderToCanvas(canvas, {
-      format,
-      templateKey,
-      post: { headline, body, slides },
-      brand: settings.brand,
-    });
-    await downloadCanvasAsPNG(canvas, `${baseName}.png`);
+
+    // Marcamos descarga: el panel "Publicar ahora" aparece con links a IG/FB.
+    setDownloadedAt(new Date());
+    // Auto-copia el caption también para que solo tengan que pegar.
+    try { await navigator.clipboard.writeText(caption); setCopied(true); } catch {}
   };
 
   const updateSlide = (index, patch) => {
@@ -222,6 +241,7 @@ export default function AdminContentEditor() {
           </Row>
         }
       />
+      <RedesNav />
 
       <div className="admin-content">
         <div className="content-editor">
@@ -242,13 +262,17 @@ export default function AdminContentEditor() {
                   onChange={(e) => setTopicId(e.target.value)}
                   aria-label="Tema"
                 >
-                  {Object.entries(CATEGORIES).map(([catKey, cat]) => (
-                    <optgroup key={catKey} label={cat.label}>
-                      {TOPICS.filter((t) => t.category === catKey).map((t) => (
-                        <option key={t.id} value={t.id}>{t.title}</option>
-                      ))}
-                    </optgroup>
-                  ))}
+                  {Object.entries(CATEGORIES).map(([catKey, cat]) => {
+                    const topicsOfCat = getAllTopics().filter((t) => t.category === catKey);
+                    if (topicsOfCat.length === 0) return null;
+                    return (
+                      <optgroup key={catKey} label={cat.label}>
+                        {topicsOfCat.map((t) => (
+                          <option key={t.id} value={t.id}>{t.title}</option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
                 </select>
                 <Meta>{topic.description}</Meta>
               </Stack>
@@ -506,18 +530,55 @@ export default function AdminContentEditor() {
               </Stack>
             </div>
 
-            <article className="wf-card" style={{ padding: 16 }}>
-              <Stack gap={6}>
-                <Eyebrow>Cómo publicar</Eyebrow>
-                <Body size={13}>
-                  1. Descargá la imagen y el caption.
-                  <br />
-                  2. Abrí Instagram o Facebook.
-                  <br />
-                  3. Subí la imagen y pegá el caption.
-                </Body>
-              </Stack>
-            </article>
+            {downloadedAt ? (
+              <article className="wf-card sage" style={{ padding: 16 }}>
+                <Stack gap={10}>
+                  <Eyebrow>✓ Listo para publicar</Eyebrow>
+                  <Body size={13}>
+                    Imagen descargada y caption copiado al portapapeles.
+                    Abrí donde quieras subir y pegá:
+                  </Body>
+                  <Row gap={8} wrap>
+                    <a
+                      href="https://www.instagram.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="wf-btn small"
+                      style={{ textDecoration: 'none' }}
+                    >
+                      Abrir Instagram
+                    </a>
+                    <a
+                      href="https://business.facebook.com/latest/composer"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="wf-btn small ghost"
+                      style={{ textDecoration: 'none' }}
+                    >
+                      Meta Business Suite
+                    </a>
+                  </Row>
+                  <Meta>
+                    Tip: Meta Business Suite te deja subir a IG + FB a la vez
+                    y programar la publicación.
+                  </Meta>
+                </Stack>
+              </article>
+            ) : (
+              <article className="wf-card" style={{ padding: 16 }}>
+                <Stack gap={6}>
+                  <Eyebrow>Cómo publicar</Eyebrow>
+                  <Body size={13}>
+                    1. Descargá la imagen (también copia el caption al
+                    portapapeles automáticamente).
+                    <br />
+                    2. Abrí Instagram o Meta Business Suite.
+                    <br />
+                    3. Subí la imagen y pegá el caption.
+                  </Body>
+                </Stack>
+              </article>
+            )}
           </Stack>
         </div>
       </div>

@@ -2,21 +2,32 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminTopbar } from '../AdminShell.jsx';
 import { Btn, Stack, Row, H3, Body, Meta, Pill, Eyebrow } from '../../components/primitives.jsx';
-import { TOPICS, CATEGORIES } from '../content/topics.js';
-import { listFavorites, toggleFavorite } from '../content/storage.js';
+import { getAllTopics, CATEGORIES } from '../content/topics.js';
+import {
+  listFavorites,
+  toggleFavorite,
+  saveCustomTopic,
+  deleteCustomTopic,
+  listCustomTopics,
+} from '../content/storage.js';
+import RedesNav from '../content/RedesNav.jsx';
 
 export default function AdminContentTopics() {
   const [category, setCategory] = useState('all');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favorites, setFavorites] = useState(() => listFavorites());
   const [search, setSearch] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [allTopics, setAllTopics] = useState(() => getAllTopics());
 
   useEffect(() => {
     document.title = 'Banco de temas · Redes · Admin · Rosibel';
   }, []);
 
+  const refreshTopics = () => setAllTopics(getAllTopics());
+
   const filtered = useMemo(() => {
-    let list = TOPICS;
+    let list = allTopics;
     if (category !== 'all') list = list.filter((t) => t.category === category);
     if (showFavoritesOnly) list = list.filter((t) => favorites.includes(t.id));
     if (search.trim()) {
@@ -29,24 +40,41 @@ export default function AdminContentTopics() {
       );
     }
     return list;
-  }, [category, showFavoritesOnly, favorites, search]);
+  }, [allTopics, category, showFavoritesOnly, favorites, search]);
 
   const handleFav = (id) => {
     const next = toggleFavorite(id);
     setFavorites(next);
   };
 
+  const handleDeleteCustom = (e, topic) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm(`¿Eliminar el tema "${topic.title}"?`)) {
+      deleteCustomTopic(topic.id);
+      refreshTopics();
+    }
+  };
+
+  const customCount = listCustomTopics().length;
+
   return (
     <>
       <AdminTopbar
         title="Banco de temas"
-        sub={`${TOPICS.length} temas listos para usar`}
+        sub={`${allTopics.length} temas${customCount > 0 ? ` · ${customCount} tuyo${customCount !== 1 ? 's' : ''}` : ''}`}
         action={
-          <Btn small as={Link} to="/admin/redes" icon={false}>
-            ← Volver
-          </Btn>
+          <Row gap={8}>
+            <Btn ghost small as={Link} to="/admin/redes" icon={false}>
+              ← Volver
+            </Btn>
+            <Btn small icon={false} onClick={() => setShowCreate(true)}>
+              + Tema nuevo
+            </Btn>
+          </Row>
         }
       />
+      <RedesNav />
 
       <div className="admin-content">
         <Stack gap={20}>
@@ -129,10 +157,19 @@ export default function AdminContentTopics() {
                         )}
                       </Row>
                     </Stack>
-                    <Row gap={8}>
+                    <Row gap={8} wrap>
                       <Btn small as={Link} to={`/admin/redes/nuevo?topic=${topic.id}`} icon={false}>
                         Usar
                       </Btn>
+                      {topic.category === 'custom' && (
+                        <button
+                          type="button"
+                          className="content-link-btn content-link-btn--danger"
+                          onClick={(e) => handleDeleteCustom(e, topic)}
+                        >
+                          Eliminar
+                        </button>
+                      )}
                     </Row>
                   </Stack>
                 </article>
@@ -141,6 +178,155 @@ export default function AdminContentTopics() {
           </div>
         </Stack>
       </div>
+
+      {showCreate && (
+        <NewTopicModal
+          onClose={() => setShowCreate(false)}
+          onCreated={refreshTopics}
+        />
+      )}
     </>
+  );
+}
+
+function NewTopicModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    hashtags: '',
+    idea: '',
+    tip: '',
+    invite: '',
+  });
+  const [error, setError] = useState('');
+
+  const update = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.title.trim()) {
+      setError('El título es obligatorio.');
+      return;
+    }
+    const hashtags = form.hashtags
+      .split(/[,\s]+/)
+      .map((h) => h.trim())
+      .filter(Boolean)
+      .map((h) => (h.startsWith('#') ? h : `#${h}`));
+
+    saveCustomTopic({
+      title: form.title,
+      description: form.description || form.title,
+      hashtags,
+      idea: form.idea,
+      tip: form.tip,
+      invite: form.invite,
+    });
+    onCreated?.();
+    onClose();
+  };
+
+  return (
+    <div className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="new-topic-title">
+      <button type="button" className="admin-modal__backdrop" onClick={onClose} aria-label="Cerrar" />
+      <div className="admin-modal__panel">
+        <Row justify="space-between" align="center" style={{ marginBottom: 16 }}>
+          <H3 id="new-topic-title" size={18}>Tema nuevo</H3>
+          <button type="button" className="admin-modal__close" onClick={onClose} aria-label="Cerrar">×</button>
+        </Row>
+        <form onSubmit={handleSubmit}>
+          <Stack gap={14}>
+            <Stack gap={6}>
+              <label className="admin-modal__label">Título *</label>
+              <input
+                className="admin-modal__input"
+                value={form.title}
+                onChange={(e) => update('title', e.target.value)}
+                placeholder="Ej. Burnout profesional"
+                required
+                autoFocus
+              />
+            </Stack>
+
+            <Stack gap={6}>
+              <label className="admin-modal__label">Descripción</label>
+              <input
+                className="admin-modal__input"
+                value={form.description}
+                onChange={(e) => update('description', e.target.value)}
+                placeholder="Una línea sobre qué cubre el tema"
+              />
+            </Stack>
+
+            <Stack gap={6}>
+              <label className="admin-modal__label">Hashtags</label>
+              <input
+                className="admin-modal__input"
+                value={form.hashtags}
+                onChange={(e) => update('hashtags', e.target.value)}
+                placeholder="burnout, saludmentalcr, terapia"
+              />
+              <Meta>Separá con comas. El # lo agregamos solos.</Meta>
+            </Stack>
+
+            <Stack gap={6}>
+              <label className="admin-modal__label">Idea clave</label>
+              <textarea
+                className="admin-modal__input"
+                rows={2}
+                value={form.idea}
+                onChange={(e) => update('idea', e.target.value)}
+                placeholder="Una frase central que querés transmitir"
+              />
+            </Stack>
+
+            <Stack gap={6}>
+              <label className="admin-modal__label">Tip (acción para hoy)</label>
+              <input
+                className="admin-modal__input"
+                value={form.tip}
+                onChange={(e) => update('tip', e.target.value)}
+                placeholder="Algo concreto que puede probar la persona"
+              />
+            </Stack>
+
+            <Stack gap={6}>
+              <label className="admin-modal__label">Invitación a sesión</label>
+              <input
+                className="admin-modal__input"
+                value={form.invite}
+                onChange={(e) => update('invite', e.target.value)}
+                placeholder="Si te resonó, conversemos en una sesión"
+              />
+            </Stack>
+
+            {error && (
+              <Body
+                role="alert"
+                style={{
+                  padding: '10px 14px',
+                  background: 'var(--danger-100)',
+                  color: 'var(--danger-500)',
+                  border: '1px solid rgb(var(--danger-rgb) / 0.28)',
+                  borderRadius: 'var(--r-md)',
+                  fontSize: 13,
+                }}
+              >
+                {error}
+              </Body>
+            )}
+
+            <Row gap={8} justify="flex-end">
+              <Btn ghost small icon={false} onClick={onClose} type="button">
+                Cancelar
+              </Btn>
+              <Btn type="submit" small icon={false} disabled={!form.title.trim()}>
+                Crear tema
+              </Btn>
+            </Row>
+          </Stack>
+        </form>
+      </div>
+    </div>
   );
 }

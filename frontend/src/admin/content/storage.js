@@ -3,9 +3,10 @@
 // Supabase migramos a una tabla `social_posts` con la misma forma.
 
 const KEYS = {
-  posts:     'redes.posts.v1',
-  settings:  'redes.settings.v1',
-  favorites: 'redes.favorites.v1',
+  posts:        'redes.posts.v1',
+  settings:     'redes.settings.v1',
+  favorites:    'redes.favorites.v1',
+  customTopics: 'redes.custom-topics.v1',
 };
 
 // ─────── Helpers genéricos ───────
@@ -43,6 +44,7 @@ const DEFAULT_SETTINGS = {
     signature: 'Rosibel',
     primaryColor: '#8B5A6B', // sage-500 (mauve acción)
     accentColor: '#E8D8D4',  // bg-2 (malva pálido)
+    photoDataUrl: null,      // foto de la doctora (DataURL, opcional)
   },
   apiKey: null,
   model: 'claude-haiku-4-5-20251001',
@@ -149,10 +151,65 @@ export function isFavorite(topicId) {
   return listFavorites().includes(topicId);
 }
 
+// ─────── Temas custom ───────
+// Estructura idéntica a los temas estáticos en topics.js, con `category: 'custom'`.
+// Se mezclan con TOPICS estáticos en la UI vía getAllTopics() en topics.js.
+
+function newTopicId() {
+  return `custom_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
+export function listCustomTopics() {
+  const t = readJSON(KEYS.customTopics, []);
+  return Array.isArray(t) ? t : [];
+}
+
+export function saveCustomTopic(input) {
+  // input: { id?, title, description, hashtags (array), idea (string), tip, question, invite }
+  const topics = listCustomTopics();
+  const normalized = {
+    id: input.id ?? newTopicId(),
+    category: 'custom',
+    title: (input.title ?? '').trim(),
+    description: (input.description ?? '').trim(),
+    hashtags: Array.isArray(input.hashtags)
+      ? input.hashtags.map((h) => h.trim()).filter(Boolean)
+      : [],
+    facts: input.facts && input.facts.length
+      ? input.facts
+      : [(input.idea ?? '').trim()].filter(Boolean),
+    question: (input.question ?? '').trim() || (input.title ?? ''),
+    myth: {
+      claim: input.mythClaim ?? '',
+      truth: input.mythTruth ?? '',
+    },
+    tip: (input.tip ?? '').trim() || (input.idea ?? '').trim(),
+    invite: (input.invite ?? '').trim() || 'Si querés conversar, agendá una sesión.',
+  };
+
+  if (input.id) {
+    const idx = topics.findIndex((t) => t.id === input.id);
+    if (idx >= 0) {
+      topics[idx] = normalized;
+      writeJSON(KEYS.customTopics, topics);
+      return normalized;
+    }
+  }
+  topics.push(normalized);
+  writeJSON(KEYS.customTopics, topics);
+  return normalized;
+}
+
+export function deleteCustomTopic(id) {
+  const next = listCustomTopics().filter((t) => t.id !== id);
+  writeJSON(KEYS.customTopics, next);
+}
+
 // ─────── Utilidades para tests ───────
 
 export function _resetForTests() {
   localStorage.removeItem(KEYS.posts);
   localStorage.removeItem(KEYS.settings);
   localStorage.removeItem(KEYS.favorites);
+  localStorage.removeItem(KEYS.customTopics);
 }

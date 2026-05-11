@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AdminTopbar } from '../AdminShell.jsx';
 import { Btn, Stack, Row, H3, Body, Meta, Pill, Eyebrow } from '../../components/primitives.jsx';
 import { listPosts, deletePost, savePost } from '../content/storage.js';
 import { findTopic, FORMATS } from '../content/topics.js';
+import RedesNav from '../content/RedesNav.jsx';
 
 const STATUSES = [
   { key: 'all',       label: 'Todos' },
@@ -13,6 +14,7 @@ const STATUSES = [
 ];
 
 export default function AdminContentLibrary() {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -59,6 +61,19 @@ export default function AdminContentLibrary() {
     setPosts(listPosts());
   };
 
+  const handleDuplicate = (post) => {
+    // Crea un nuevo post como borrador sin id (savePost asigna uno nuevo).
+    // No copiamos scheduledFor para evitar publicar dos veces en la misma fecha.
+    const { id, createdAt, updatedAt, ...rest } = post;
+    const dup = savePost({
+      ...rest,
+      headline: `${post.headline} (copia)`,
+      status: 'draft',
+      scheduledFor: null,
+    });
+    navigate(`/admin/redes/nuevo?id=${dup.id}`);
+  };
+
   return (
     <>
       <AdminTopbar
@@ -70,6 +85,7 @@ export default function AdminContentLibrary() {
           </Btn>
         }
       />
+      <RedesNav />
 
       <div className="admin-content">
         <Stack gap={20}>
@@ -130,6 +146,9 @@ export default function AdminContentLibrary() {
                     <Row gap={8} wrap>
                       <Btn small as={Link} to={`/admin/redes/nuevo?id=${post.id}`} icon={false}>
                         Editar
+                      </Btn>
+                      <Btn small ghost onClick={() => handleDuplicate(post)} icon={false}>
+                        Duplicar
                       </Btn>
                       {post.status !== 'published' && (
                         <Btn small ghost onClick={() => handleMarkPublished(post)} icon={false}>

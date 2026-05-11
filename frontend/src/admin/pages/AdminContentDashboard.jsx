@@ -5,6 +5,8 @@ import { Btn, Stack, Row, H3, Body, Meta, Eyebrow, Pill } from '../../components
 import { listPosts } from '../content/storage.js';
 import { getContentSuggestions, getToday } from '../content/occupancy.js';
 import { findTopic, FORMATS } from '../content/topics.js';
+import RedesNav from '../content/RedesNav.jsx';
+import FeedMosaic from '../content/FeedMosaic.jsx';
 
 const DAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -91,6 +93,7 @@ export default function AdminContentDashboard() {
           </Row>
         }
       />
+      <RedesNav />
 
       <div className="admin-content">
         <Stack gap={24}>
@@ -122,6 +125,9 @@ export default function AdminContentDashboard() {
               ))}
             </div>
           </Stack>
+
+          {/* Feed Instagram mosaico */}
+          <FeedMosaic />
 
           {/* Calendario editorial */}
           <article className="wf-card" style={{ padding: 0 }}>

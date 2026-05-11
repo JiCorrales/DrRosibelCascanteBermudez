@@ -1,6 +1,8 @@
 // Banco de temas para el módulo "Redes" del admin.
 // Cada tema agrupa hechos, preguntas, mitos, tips e invitaciones que después
 // el generador combina con un ángulo y formato (post / story / carrusel).
+
+import { listCustomTopics } from './storage.js';
 //
 // Estructura por tema:
 //   id            — slug único
@@ -23,6 +25,7 @@ export const CATEGORIES = {
   autoconocimiento:   { label: 'Autoconocimiento',          emoji: '◕' },
   mitos:              { label: 'Mitos sobre la terapia',    emoji: '◖' },
   practica:           { label: 'Sobre mi práctica',         emoji: '◗' },
+  custom:             { label: 'Mis temas',                 emoji: '★' },
 };
 
 export const ANGLES = {
@@ -629,10 +632,16 @@ export const TOPICS = [
   },
 ];
 
+// Lista combinada: temas estáticos del bundle + temas custom de localStorage.
+// El editor y el banco siempre deben usar esta función, no TOPICS directo.
+export function getAllTopics() {
+  return [...TOPICS, ...listCustomTopics()];
+}
+
 export function findTopic(id) {
-  return TOPICS.find((t) => t.id === id) ?? null;
+  return getAllTopics().find((t) => t.id === id) ?? null;
 }
 
 export function topicsByCategory(category) {
-  return TOPICS.filter((t) => t.category === category);
+  return getAllTopics().filter((t) => t.category === category);
 }
