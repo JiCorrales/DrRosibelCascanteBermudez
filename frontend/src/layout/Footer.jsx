@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
+import { buildWaUrl } from '../data.js';
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -44,6 +45,15 @@ export default function Footer() {
             <a href="tel:+50688414861" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="phone" size={14} />
               <span>+506 8841 4861</span>
+            </a>
+            <a
+              href={buildWaUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              <Icon name="whatsapp" size={14} />
+              <span>WhatsApp</span>
             </a>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
               <Icon name="location" size={14} />

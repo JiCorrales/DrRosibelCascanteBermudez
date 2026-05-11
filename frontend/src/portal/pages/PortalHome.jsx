@@ -4,6 +4,8 @@ import { Btn, Stack, Row, H3, Body, Meta, Eyebrow, Icon } from '../../components
 import { useAuth } from '../../auth/useAuth.js';
 import { useMyBookings } from '../../lib/queries.js';
 import { PORTAL_TASKS, PORTAL_DOCS } from '../../mock/admin-data.js';
+import WhatsAppButton from '../../components/WhatsAppButton.jsx';
+import { WHATSAPP_PREFILL } from '../../data.js';
 
 const SHORT_DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -95,6 +97,16 @@ export default function PortalHome() {
               <Btn small ghost icon={false}>
                 Reagendar
               </Btn>
+              <WhatsAppButton
+                size="sm"
+                variant="ghost"
+                message={WHATSAPP_PREFILL.reschedule.replace(
+                  '{{cuando}}',
+                  `${formatApptDate(nextAppt.date)} ${nextAppt.time}`
+                )}
+              >
+                WhatsApp
+              </WhatsAppButton>
             </Row>
           </div>
         </article>

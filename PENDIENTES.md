@@ -30,9 +30,27 @@ Pequeñas tareas a no olvidar. Lo grande va al plan en `~/.claude/plans/`.
         - `http://localhost:5173/portal/auth/callback`
         - `https://<URL-VERCEL>/portal/auth/callback`
       Sin esto, el magic link del portal del paciente no redirige correctamente.
-- [ ] **Setear `RESEND_API_KEY` en Supabase Functions secrets**
-      (https://supabase.com/dashboard/project/sqhudjvritubmaodrsha/functions/secrets):
-      el valor está local en `frontend/.env.local`.
+- [ ] **Regenerar `RESEND_API_KEY`** (el valor actual en Supabase está
+      rechazado por Resend con 401):
+      1. Ir a https://resend.com/api-keys → generar nueva key (Full access).
+      2. Ir a https://supabase.com/dashboard/project/sqhudjvritubmaodrsha/functions/secrets
+      3. Setear/actualizar `RESEND_API_KEY` con el nuevo valor.
+      4. Probar haciendo una reserva — debería llegar correo a
+         `jocorrales.dev@gmail.com` (limitación del free tier de Resend sin
+         dominio verificado).
+- [ ] **Aplicar migración `0011_reminders.sql`** y deployar `task-reminder`:
+      Activa los recordatorios automáticos (cron 24h antes de citas + tarea
+      pendiente del día). Archivos listos en el repo:
+      - `supabase/migrations/0011_reminders.sql` — habilita pg_cron+pg_net,
+        crea tabla `notifications_sent`, funciones `send_booking_reminders()`
+        y `send_task_reminders()`, y los cron jobs.
+      - `supabase/functions/task-reminder/index.ts` — edge function que envía
+        el correo de recordatorio de tareas.
+      Aplicar:
+      1. Desde el SQL Editor de Supabase, pegar el contenido del .sql y ejecutar.
+      2. Desde Functions, crear `task-reminder` y pegar el contenido del .ts.
+      3. Verificar con `SELECT * FROM cron.job;` que los 2 jobs aparezcan
+         (`booking-reminders-15min`, `task-reminders-daily`).
 - [ ] **Datos reales de la doctora** (reemplazar placeholders en
       [frontend/src/data.js](frontend/src/data.js) y secciones):
       - Código CPCR real

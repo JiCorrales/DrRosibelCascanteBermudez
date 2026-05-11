@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Eyebrow, Body, Btn, Stack, Row, Icon, Meta } from '../components/primitives.jsx';
+import WhatsAppButton from '../components/WhatsAppButton.jsx';
 
 export default function CTA() {
   return (
@@ -24,6 +25,9 @@ export default function CTA() {
               >
                 Agendar primera sesión gratis
               </Btn>
+              <WhatsAppButton variant="ghost" style={{ background: 'transparent', color: 'var(--bg)', border: '1px solid var(--bg)' }}>
+                Escribirme por WhatsApp
+              </WhatsAppButton>
             </Row>
           </Stack>
 

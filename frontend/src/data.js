@@ -113,6 +113,29 @@ export const SITS = [
 
 export const TIMES = ['9:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
 
+// Datos de contacto centralizados — única fuente de verdad para footer, CTA, header, correos.
+export const CONTACT = {
+  email: 'cascantebermudezrosibel@gmail.com',
+  // Número en formato internacional sin separadores, requerido por wa.me y tel:
+  // Display: '+506 8841 4861' / WhatsApp: '50688414861'
+  phone_display: '+506 8841 4861',
+  phone_e164: '50688414861',
+  whatsapp_url: 'https://wa.me/50688414861',
+  location: 'San Pedro, San José',
+};
+
+// Mensajes pre-armados para wa.me?text=. URL-encoded por el helper buildWaUrl().
+export const WHATSAPP_PREFILL = {
+  generic: 'Hola Rosibel, me gustaría agendar una cita.',
+  // Para el correo de confirmación. El edge function reemplaza los tokens.
+  confirm: 'Hola Rosibel, ya reservé mi cita el {{cuando}}. ¿La confirmamos por acá?',
+  reschedule: 'Hola Rosibel, necesito reagendar mi cita del {{cuando}}.',
+};
+
+export function buildWaUrl(message = WHATSAPP_PREFILL.generic) {
+  return `${CONTACT.whatsapp_url}?text=${encodeURIComponent(message)}`;
+}
+
 export const PRINCIPIOS = [
   ['01', 'Sin juicio', 'Acá no hay diagnósticos rápidos ni etiquetas. Empezamos donde estás.'],
   ['02', 'Basado en evidencia', 'Uso herramientas con respaldo: TCC, EMDR, terapia de aceptación.'],
