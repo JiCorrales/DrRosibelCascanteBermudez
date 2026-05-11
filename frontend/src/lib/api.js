@@ -92,6 +92,32 @@ export async function fetchAvailabilityOverrides() {
 // RESERVAS
 // ─────────────────────────────────────────────
 
+// Fire-and-forget: notifica la edge function. Falla silenciosamente —
+// la reserva ya quedó persistida; los correos son un nice-to-have.
+async function notifyBookingConfirmation(input) {
+  try {
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!url || !key) return;
+    const service = MOCK_SERVICES.find((s) => s.id === input.service_id);
+    await fetch(`${url}/functions/v1/booking-confirmation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${key}`,
+        apikey: key,
+      },
+      body: JSON.stringify({
+        ...input,
+        service_name: service?.name,
+        price_crc: service?.price,
+      }),
+    });
+  } catch {
+    /* no-op: los correos son best-effort */
+  }
+}
+
 export async function createBooking(input) {
   // input: { service_id, scheduled_at (ISO), duration_min, modality, patient_name, patient_email, patient_phone, message, consent }
   if (!isSupabaseConfigured) {
@@ -105,6 +131,11 @@ export async function createBooking(input) {
     .from('bookings')
     .insert({ ...input, status: 'pending' });
   if (error) return err(error);
+
+  // Disparar correos de confirmación en background. NO await — si tarda o falla
+  // no afecta la confirmación al paciente que ya vio "Listo".
+  notifyBookingConfirmation(input);
+
   return ok({ ...input, status: 'pending' });
 }
 
