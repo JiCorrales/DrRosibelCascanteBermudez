@@ -108,9 +108,57 @@ export async function createBooking(input) {
   return ok({ ...input, status: 'pending' });
 }
 
+// Shape unificado para citas — el UI no se ramifica entre mock y Supabase:
+// {
+//   id, scheduled_at (ISO), date (YYYY-MM-DD), time (HH:MM),
+//   duration_min, status, modality, patient_name, patient_email,
+//   service: { id, name, duration_min },
+//   client: { id, full_name },
+// }
+function normalizeMockBooking(a) {
+  const client = mockFindClient(a.clientId);
+  const service = MOCK_SERVICES.find((s) => s.id === a.serviceId) ?? MOCK_ADMIN_SERVICES.find((s) => s.id === a.serviceId);
+  return {
+    id: a.id,
+    scheduled_at: `${a.date}T${a.time}:00.000Z`,
+    date: a.date,
+    time: a.time,
+    duration_min: service?.dur ?? 50,
+    status: a.status,
+    modality: a.modality,
+    patient_name: client?.name ?? 'Cliente',
+    patient_email: client?.email ?? '',
+    service: service ? { id: service.id, name: service.name, duration_min: service.dur } : null,
+    client: client ? { id: client.id, full_name: client.name } : null,
+  };
+}
+
+function normalizeDbBooking(row) {
+  const d = new Date(row.scheduled_at);
+  // Date/hora local (en CR el navegador del admin probablemente está en TZ correcta)
+  const pad = (n) => String(n).padStart(2, '0');
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return {
+    id: row.id,
+    scheduled_at: row.scheduled_at,
+    date,
+    time,
+    duration_min: row.duration_min ?? row.services?.duration_min ?? 50,
+    status: row.status,
+    modality: row.modality,
+    patient_name: row.patient_name,
+    patient_email: row.patient_email,
+    service: row.services ? { id: row.service_id, name: row.services.name, duration_min: row.services.duration_min } : null,
+    client: row.clients ? { id: row.client_id, full_name: row.clients.full_name } : null,
+  };
+}
+
 export async function listBookings({ from, to, status, search } = {}) {
   if (!isSupabaseConfigured) {
-    let result = MOCK_APPTS;
+    let result = MOCK_APPTS.map(normalizeMockBooking);
+    if (from) result = result.filter((a) => a.scheduled_at >= from);
+    if (to) result = result.filter((a) => a.scheduled_at <= to);
     if (status === 'cancelled') {
       result = result.filter((a) => a.status === 'cancelled' || a.status === 'no_show');
     } else if (status) {
@@ -118,14 +166,14 @@ export async function listBookings({ from, to, status, search } = {}) {
     }
     if (search?.trim()) {
       const q = search.toLowerCase();
-      result = result.filter((a) => (mockFindClient(a.clientId)?.name ?? '').toLowerCase().includes(q));
+      result = result.filter((a) => a.patient_name.toLowerCase().includes(q));
     }
     return ok(result);
   }
 
   let q = supabase
     .from('bookings')
-    .select('*, services(name, duration_min)')
+    .select('*, services(name, duration_min), clients(full_name)')
     .order('scheduled_at', { ascending: false });
 
   if (from) q = q.gte('scheduled_at', from);
@@ -136,7 +184,7 @@ export async function listBookings({ from, to, status, search } = {}) {
 
   const { data, error } = await q;
   if (error) return err(error);
-  return ok(data);
+  return ok(data.map(normalizeDbBooking));
 }
 
 export async function updateBookingStatus(id, status) {
@@ -181,14 +229,16 @@ export async function fetchClient(id) {
 }
 
 export async function fetchClientBookings(clientId) {
-  if (!isSupabaseConfigured) return ok(mockApptsByClient(clientId));
+  if (!isSupabaseConfigured) {
+    return ok(mockApptsByClient(clientId).map(normalizeMockBooking));
+  }
   const { data, error } = await supabase
     .from('bookings')
-    .select('*, services(name, duration_min)')
+    .select('*, services(name, duration_min), clients(full_name)')
     .eq('client_id', clientId)
     .order('scheduled_at', { ascending: false });
   if (error) return err(error);
-  return ok(data);
+  return ok(data.map(normalizeDbBooking));
 }
 
 // ─────────────────────────────────────────────

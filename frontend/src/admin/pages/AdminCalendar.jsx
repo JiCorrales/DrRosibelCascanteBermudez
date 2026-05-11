@@ -1,34 +1,89 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AdminTopbar } from '../AdminShell.jsx';
 import { Btn, Stack, Row, H3, Body, Meta, Icon, Pill } from '../../components/primitives.jsx';
-import { APPOINTMENTS, findClient } from '../../mock/admin-data.js';
-import { findService } from '../../data.js';
+import { useBookings } from '../../lib/queries.js';
 
 const HOURS = ['8', '9', '10', '11', '12', '13', '14', '15', '16', '17'];
-const WEEK_DATES = [
-  { date: '2026-05-11', short: 'Lun', day: '11', isToday: false },
-  { date: '2026-05-12', short: 'Mar', day: '12', isToday: false },
-  { date: '2026-05-13', short: 'Mié', day: '13', isToday: false },
-  { date: '2026-05-14', short: 'Jue', day: '14', isToday: true },
-  { date: '2026-05-15', short: 'Vie', day: '15', isToday: false },
-  { date: '2026-05-16', short: 'Sáb', day: '16', isToday: false },
-  { date: '2026-05-17', short: 'Dom', day: '17', isToday: false },
-];
-
 const SLOT_HEIGHT = 56;
 const HEADER_HEIGHT = 56;
+
+const SHORT_DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+function pad(n) {
+  return String(n).padStart(2, '0');
+}
+function ymd(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function mondayOf(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function weekDates(monday) {
+  const today = ymd(new Date());
+  return Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return {
+      date: ymd(d),
+      short: SHORT_DAYS[d.getDay()],
+      day: String(d.getDate()),
+      monthShort: MONTHS[d.getMonth()],
+      isToday: ymd(d) === today,
+    };
+  });
+}
 
 function eventTop(time) {
   const [h, m] = time.split(':').map(Number);
   return HEADER_HEIGHT + (h - 8) * SLOT_HEIGHT + (m / 60) * SLOT_HEIGHT;
 }
 
+function IconBtn({ label, rotate, onClick }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 6,
+        border: '1px solid var(--line)',
+        background: '#fff',
+        color: 'var(--ink-700)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        transform: rotate ? 'rotate(180deg)' : undefined,
+      }}
+    >
+      <Icon name="back" size={12} />
+    </button>
+  );
+}
+
 export default function AdminCalendar() {
   const [isCompact, setIsCompact] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 900px)').matches : false
   );
-  const todayInitial = WEEK_DATES.find((d) => d.isToday)?.date ?? WEEK_DATES[0].date;
-  const [activeDate, setActiveDate] = useState(todayInitial);
+
+  const [anchor, setAnchor] = useState(() => mondayOf(new Date()));
+  const week = useMemo(() => weekDates(anchor), [anchor]);
+  const todayDate = week.find((d) => d.isToday)?.date ?? week[0].date;
+  const [activeDate, setActiveDate] = useState(todayDate);
+
+  // Sincronizar activeDate cuando cambia la semana
+  useEffect(() => {
+    setActiveDate(week.find((d) => d.isToday)?.date ?? week[0].date);
+  }, [anchor]); // eslint-disable-line
 
   useEffect(() => {
     document.title = 'Calendario · Admin · Rosibel';
@@ -44,31 +99,57 @@ export default function AdminCalendar() {
     };
   }, []);
 
-  const dayAppts = APPOINTMENTS
-    .filter((a) => a.date === activeDate)
+  const weekFromIso = useMemo(() => new Date(week[0].date + 'T00:00:00').toISOString(), [week]);
+  const weekToIso = useMemo(() => {
+    const last = new Date(week[6].date + 'T23:59:59');
+    return last.toISOString();
+  }, [week]);
+
+  const bookingsQ = useBookings({ from: weekFromIso, to: weekToIso });
+  const bookings = bookingsQ.data ?? [];
+
+  const dayAppts = bookings
+    .filter((b) => b.date === activeDate)
     .slice()
     .sort((x, y) => (x.time < y.time ? -1 : 1));
+
+  const weekRangeLabel = `${week[0].day} ${week[0].monthShort} – ${week[6].day} ${week[6].monthShort} ${anchor.getFullYear()}`;
+
+  const goPrev = () => {
+    const d = new Date(anchor);
+    d.setDate(anchor.getDate() - 7);
+    setAnchor(d);
+  };
+  const goNext = () => {
+    const d = new Date(anchor);
+    d.setDate(anchor.getDate() + 7);
+    setAnchor(d);
+  };
+  const goToday = () => {
+    setAnchor(mondayOf(new Date()));
+    setActiveDate(ymd(new Date()));
+  };
 
   return (
     <>
       <AdminTopbar
         title="Calendario"
-        sub="Semana del 11 al 17 de mayo, 2026"
+        sub={`Semana ${weekRangeLabel}`}
         action={<Btn small icon={false}>+ Nueva</Btn>}
       />
       <div className="admin-content">
         <Stack gap={16}>
           <Row justify="space-between" align="center" wrap style={{ gap: 12 }}>
             <Row gap={12} align="center">
-              <Btn small ghost icon={false} onClick={() => setActiveDate(todayInitial)}>
+              <Btn small ghost icon={false} onClick={goToday}>
                 Hoy
               </Btn>
               <Row gap={6}>
-                <IconBtn label="Semana anterior" rotate={false} />
-                <IconBtn label="Semana siguiente" rotate />
+                <IconBtn label="Semana anterior" rotate={false} onClick={goPrev} />
+                <IconBtn label="Semana siguiente" rotate onClick={goNext} />
               </Row>
               <H3 size={16} style={{ display: isCompact ? 'none' : 'block' }}>
-                Sem. del 11 al 17 de mayo
+                Sem. {weekRangeLabel}
               </H3>
             </Row>
             <Row gap={6} role="tablist" aria-label="Vista del calendario">
@@ -78,10 +159,25 @@ export default function AdminCalendar() {
             </Row>
           </Row>
 
+          {bookingsQ.isError && (
+            <Body
+              role="alert"
+              style={{
+                padding: '12px 16px',
+                background: 'var(--danger-100)',
+                color: 'var(--danger-500)',
+                border: '1px solid rgba(184,84,80,0.28)',
+                borderRadius: 'var(--r-md)',
+              }}
+            >
+              No pudimos cargar las citas: {bookingsQ.error?.message ?? 'error desconocido'}
+            </Body>
+          )}
+
           {isCompact ? (
             <Stack gap={14}>
               <div className="cal-day-strip" role="tablist" aria-label="Días de la semana">
-                {WEEK_DATES.map((d) => (
+                {week.map((d) => (
                   <button
                     key={d.date}
                     type="button"
@@ -99,31 +195,34 @@ export default function AdminCalendar() {
               <Stack gap={4}>
                 <Meta>
                   {dayAppts.length} cita{dayAppts.length !== 1 ? 's' : ''} ·{' '}
-                  {WEEK_DATES.find((d) => d.date === activeDate)?.short}{' '}
-                  {WEEK_DATES.find((d) => d.date === activeDate)?.day} mayo
+                  {week.find((d) => d.date === activeDate)?.short}{' '}
+                  {week.find((d) => d.date === activeDate)?.day}{' '}
+                  {week.find((d) => d.date === activeDate)?.monthShort}
                 </Meta>
               </Stack>
 
-              {dayAppts.length === 0 ? (
+              {bookingsQ.isLoading ? (
+                <Body style={{ padding: 24, textAlign: 'center', color: 'var(--ink-500)' }}>
+                  Cargando citas…
+                </Body>
+              ) : dayAppts.length === 0 ? (
                 <Body style={{ padding: 24, textAlign: 'center', color: 'var(--ink-500)' }}>
                   Sin citas para este día.
                 </Body>
               ) : (
                 <div className="cal-list">
                   {dayAppts.map((a) => {
-                    const client = findClient(a.clientId);
-                    const service = findService(a.serviceId);
                     const cls = a.status === 'pending' ? 'cal-list__item pending' : 'cal-list__item';
                     return (
                       <div key={a.id} className={cls}>
                         <Stack gap={2}>
                           <span className="cal-list__time">{a.time}</span>
-                          <span className="cal-list__dur">{service?.dur ?? 50} min</span>
+                          <span className="cal-list__dur">{a.duration_min} min</span>
                         </Stack>
                         <Stack gap={2} style={{ minWidth: 0 }}>
-                          <span className="cal-list__name">{client?.name ?? 'Cliente'}</span>
+                          <span className="cal-list__name">{a.client?.full_name ?? a.patient_name}</span>
                           <span className="cal-list__sub">
-                            {service?.name ?? 'Servicio'} · {a.modality === 'online' ? 'Online' : 'Presencial'}
+                            {a.service?.name ?? 'Servicio'} · {a.modality === 'online' ? 'Online' : 'Presencial'}
                           </span>
                         </Stack>
                         <Icon name="arrow" size={14} color="var(--ink-300)" />
@@ -152,8 +251,8 @@ export default function AdminCalendar() {
                 ))}
               </div>
 
-              {WEEK_DATES.map((d) => {
-                const events = APPOINTMENTS.filter((a) => a.date === d.date);
+              {week.map((d) => {
+                const events = bookings.filter((b) => b.date === d.date);
                 return (
                   <div key={d.date} className="day-col">
                     <div
@@ -169,21 +268,20 @@ export default function AdminCalendar() {
                       <div key={h} className="slot" />
                     ))}
                     {events.map((a) => {
-                      const client = findClient(a.clientId);
-                      const service = findService(a.serviceId);
                       const cls = a.status === 'pending' ? 'cal-event pending' : 'cal-event';
+                      const firstName = (a.client?.full_name ?? a.patient_name ?? '').split(' ')[0];
                       return (
                         <div
                           key={a.id}
                           className={cls}
                           style={{
                             top: eventTop(a.time),
-                            height: ((service?.dur ?? 50) / 60) * SLOT_HEIGHT - 4,
+                            height: (a.duration_min / 60) * SLOT_HEIGHT - 4,
                           }}
                         >
-                          <div style={{ fontWeight: 600 }}>{client?.firstName ?? 'Cliente'}</div>
+                          <div style={{ fontWeight: 600 }}>{firstName || 'Cliente'}</div>
                           <div style={{ color: 'var(--ink-500)', fontSize: 10 }}>
-                            {a.time} · {service?.dur ?? 50} min
+                            {a.time} · {a.duration_min} min
                           </div>
                         </div>
                       );
@@ -196,29 +294,5 @@ export default function AdminCalendar() {
         </Stack>
       </div>
     </>
-  );
-}
-
-function IconBtn({ label, rotate }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      style={{
-        width: 32,
-        height: 32,
-        borderRadius: 6,
-        border: '1px solid var(--line)',
-        background: '#fff',
-        color: 'var(--ink-700)',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        transform: rotate ? 'rotate(180deg)' : undefined,
-      }}
-    >
-      <Icon name="back" size={12} />
-    </button>
   );
 }

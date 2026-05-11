@@ -1,15 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { renderWithRouter, screen, within } from '../test-utils.jsx';
+import { renderWithRouter, screen, within, waitFor } from '../test-utils.jsx';
 import AdminAppts from '../../admin/pages/AdminAppts.jsx';
 import { APPOINTMENTS, findClient } from '../../mock/admin-data.js';
 
 describe('AdminAppts', () => {
-  it('lists all appointments by default', () => {
+  it('lists all appointments by default', async () => {
     renderWithRouter(<AdminAppts />, { route: '/admin/citas' });
     expect(screen.getByRole('heading', { name: /^citas$/i })).toBeInTheDocument();
-    // Sub muestra cantidad total cuando filtro es "all"
-    expect(screen.getByText(`${APPOINTMENTS.length} resultados`)).toBeInTheDocument();
+    // Las queries son async (TanStack Query) — esperamos al render del conteo
+    expect(
+      await screen.findByText(`${APPOINTMENTS.length} resultados`)
+    ).toBeInTheDocument();
   });
 
   it('filters by status tab "Pendientes" and reflects count', async () => {
@@ -17,15 +19,19 @@ describe('AdminAppts', () => {
     renderWithRouter(<AdminAppts />, { route: '/admin/citas' });
 
     const expectedPending = APPOINTMENTS.filter((a) => a.status === 'pending').length;
+    const expectedText = `${expectedPending} resultado${expectedPending !== 1 ? 's' : ''}`;
 
     await user.click(screen.getByRole('tab', { name: /^pendientes$/i }));
-    expect(screen.getByText(`${expectedPending} resultado${expectedPending !== 1 ? 's' : ''}`)).toBeInTheDocument();
 
-    // Todas las filas visibles deben tener la pill de "Pendiente"
-    const rows = screen.getAllByRole('link');
-    rows.forEach((row) => {
-      const status = within(row).queryByText(/pendiente/i);
-      expect(status).toBeInTheDocument();
+    expect(await screen.findByText(expectedText)).toBeInTheDocument();
+
+    // Cuando el filtro está en pending, todas las filas visibles tienen status "Pendiente"
+    await waitFor(() => {
+      const rows = screen.getAllByRole('link');
+      rows.forEach((row) => {
+        const status = within(row).queryByText(/pendiente/i);
+        expect(status).toBeInTheDocument();
+      });
     });
   });
 
@@ -36,11 +42,17 @@ describe('AdminAppts', () => {
     const firstClientName = findClient(APPOINTMENTS[0].clientId).name;
     const firstName = firstClientName.split(' ')[0];
 
+    // Esperar a que la query inicial cargue
+    await screen.findByText(/resultados$/);
+
     await user.type(screen.getByRole('searchbox'), firstName);
 
-    const rows = screen.getAllByRole('link');
-    rows.forEach((row) => {
-      expect(within(row).getByText(new RegExp(firstName, 'i'))).toBeInTheDocument();
+    await waitFor(() => {
+      const rows = screen.getAllByRole('link');
+      expect(rows.length).toBeGreaterThan(0);
+      rows.forEach((row) => {
+        expect(within(row).getByText(new RegExp(firstName, 'i'))).toBeInTheDocument();
+      });
     });
   });
 

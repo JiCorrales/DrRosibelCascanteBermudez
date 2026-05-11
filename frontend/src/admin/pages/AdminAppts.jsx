@@ -2,42 +2,59 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AdminTopbar, StatusPill } from '../AdminShell.jsx';
 import { Btn, Stack, Row, H3, Body, Meta, Photo } from '../../components/primitives.jsx';
-import { APPOINTMENTS, findClient } from '../../mock/admin-data.js';
-import { findService } from '../../data.js';
+import { useBookings } from '../../lib/queries.js';
 
 const FILTERS = [
-  { key: 'all',       label: 'Todas' },
-  { key: 'today',     label: 'Hoy' },
-  { key: 'week',      label: 'Esta semana' },
-  { key: 'pending',   label: 'Pendientes' },
+  { key: 'all', label: 'Todas' },
+  { key: 'today', label: 'Hoy' },
+  { key: 'week', label: 'Esta semana' },
+  { key: 'pending', label: 'Pendientes' },
   { key: 'completed', label: 'Completadas' },
   { key: 'cancelled', label: 'Canceladas' },
 ];
 
-const TODAY = '2026-05-14';
-const WEEK_START = '2026-05-11';
-const WEEK_END = '2026-05-17';
-
-function filterAppts(appts, key, query) {
-  let result = appts;
-  if (key === 'today') result = result.filter((a) => a.date === TODAY);
-  else if (key === 'week') result = result.filter((a) => a.date >= WEEK_START && a.date <= WEEK_END);
-  else if (key === 'pending')   result = result.filter((a) => a.status === 'pending');
-  else if (key === 'completed') result = result.filter((a) => a.status === 'completed');
-  else if (key === 'cancelled') result = result.filter((a) => a.status === 'cancelled' || a.status === 'no_show');
-
-  if (query.trim()) {
-    const q = query.toLowerCase();
-    result = result.filter((a) => {
-      const c = findClient(a.clientId);
-      return (c?.name ?? '').toLowerCase().includes(q);
-    });
-  }
-  return result.slice().sort((x, y) => (x.date + x.time < y.date + y.time ? 1 : -1));
+function startOfDay(d = new Date()) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function endOfDay(d = new Date()) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+function startOfWeek(d = new Date()) {
+  const x = startOfDay(d);
+  const day = x.getDay(); // 0 = dom
+  const diff = (day === 0 ? -6 : 1) - day; // lunes como inicio
+  x.setDate(x.getDate() + diff);
+  return x;
+}
+function endOfWeek(d = new Date()) {
+  const x = startOfWeek(d);
+  x.setDate(x.getDate() + 6);
+  x.setHours(23, 59, 59, 999);
+  return x;
 }
 
-function formatDate(iso) {
-  const d = new Date(iso + 'T12:00:00');
+function filterArgsFor(filter, query) {
+  const args = {};
+  if (query.trim()) args.search = query.trim();
+  if (filter === 'today') {
+    args.from = startOfDay().toISOString();
+    args.to = endOfDay().toISOString();
+  } else if (filter === 'week') {
+    args.from = startOfWeek().toISOString();
+    args.to = endOfWeek().toISOString();
+  } else if (filter === 'pending' || filter === 'completed' || filter === 'cancelled') {
+    args.status = filter;
+  }
+  return args;
+}
+
+function formatDate(isoDate) {
+  // isoDate puede venir como YYYY-MM-DD desde normalize
+  const d = new Date(isoDate + 'T12:00:00');
   const dayName = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][d.getDay()];
   const monthName = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][d.getMonth()];
   return `${dayName} ${d.getDate()} ${monthName}`;
@@ -77,13 +94,19 @@ export default function AdminAppts() {
     }
   }, [filter]); // eslint-disable-line
 
-  const filtered = useMemo(() => filterAppts(APPOINTMENTS, filter, query), [filter, query]);
+  const args = useMemo(() => filterArgsFor(filter, query), [filter, query]);
+  const bookingsQ = useBookings(args);
+  const rows = bookingsQ.data ?? [];
 
   return (
     <>
       <AdminTopbar
         title="Citas"
-        sub={`${filtered.length} resultado${filtered.length !== 1 ? 's' : ''}`}
+        sub={
+          bookingsQ.isLoading
+            ? 'Cargando…'
+            : `${rows.length} resultado${rows.length !== 1 ? 's' : ''}`
+        }
         action={<Btn small icon={false}>+ Nueva</Btn>}
       />
       <div className="admin-content">
@@ -123,13 +146,28 @@ export default function AdminAppts() {
             />
           </Row>
 
-          {filtered.length === 0 && (
+          {bookingsQ.isError && (
+            <Body
+              role="alert"
+              style={{
+                padding: '12px 16px',
+                background: 'var(--danger-100)',
+                color: 'var(--danger-500)',
+                border: '1px solid rgba(184,84,80,0.28)',
+                borderRadius: 'var(--r-md)',
+              }}
+            >
+              No pudimos cargar las citas: {bookingsQ.error?.message ?? 'error desconocido'}
+            </Body>
+          )}
+
+          {!bookingsQ.isError && !bookingsQ.isLoading && rows.length === 0 && (
             <Body style={{ padding: 24, textAlign: 'center', color: 'var(--ink-500)' }}>
               No hay citas que coincidan con los filtros.
             </Body>
           )}
 
-          {!isCompact && filtered.length > 0 && (
+          {!isCompact && rows.length > 0 && (
             <div className="data-table">
               <div className="data-table__head" style={{ gridTemplateColumns: COL_TEMPLATE }}>
                 <div>Fecha · Hora</div>
@@ -138,64 +176,60 @@ export default function AdminAppts() {
                 <div>Estado</div>
                 <div />
               </div>
-              {filtered.map((a) => {
-                const client = findClient(a.clientId);
-                const service = findService(a.serviceId);
-                return (
-                  <Link
-                    to={`/admin/clientes/${a.clientId}`}
-                    key={a.id}
-                    className="data-table__row"
-                    style={{ gridTemplateColumns: COL_TEMPLATE }}
-                  >
+              {rows.map((a) => (
+                <Link
+                  to={a.client?.id ? `/admin/clientes/${a.client.id}` : '/admin/clientes'}
+                  key={a.id}
+                  className="data-table__row"
+                  style={{ gridTemplateColumns: COL_TEMPLATE }}
+                >
+                  <Stack gap={2}>
+                    <H3 size={13}>{formatDate(a.date)}</H3>
+                    <Meta>{a.time}</Meta>
+                  </Stack>
+                  <Row gap={12} align="center">
+                    <Photo w={32} h={32} rounded={999} label="" />
                     <Stack gap={2}>
-                      <H3 size={13}>{formatDate(a.date)}</H3>
-                      <Meta>{a.time}</Meta>
+                      <H3 size={13}>{a.client?.full_name ?? a.patient_name}</H3>
+                      <Meta>{a.modality === 'online' ? 'Online' : 'Presencial'}</Meta>
                     </Stack>
-                    <Row gap={12} align="center">
-                      <Photo w={32} h={32} rounded={999} label="" />
-                      <Stack gap={2}>
-                        <H3 size={13}>{client?.name}</H3>
-                        <Meta>{a.modality === 'online' ? 'Online' : 'Presencial'}</Meta>
-                      </Stack>
-                    </Row>
-                    <Meta>{service?.name ?? 'Servicio'}</Meta>
-                    <div>
-                      <StatusPill status={a.status} />
-                    </div>
-                    <Meta style={{ textAlign: 'right' }}>•••</Meta>
-                  </Link>
-                );
-              })}
+                  </Row>
+                  <Meta>{a.service?.name ?? 'Servicio'}</Meta>
+                  <div>
+                    <StatusPill status={a.status} />
+                  </div>
+                  <Meta style={{ textAlign: 'right' }}>•••</Meta>
+                </Link>
+              ))}
             </div>
           )}
 
-          {isCompact && filtered.length > 0 && (
+          {isCompact && rows.length > 0 && (
             <div className="appt-card-list">
-              {filtered.map((a) => {
-                const client = findClient(a.clientId);
-                const service = findService(a.serviceId);
-                return (
-                  <Link to={`/admin/clientes/${a.clientId}`} key={a.id} className="appt-card">
-                    <div className="appt-card__head">
-                      <div>
-                        <div className="appt-card__date">{formatDate(a.date)}</div>
-                        <div className="appt-card__time">{a.time}</div>
-                      </div>
-                      <StatusPill status={a.status} />
+              {rows.map((a) => (
+                <Link
+                  to={a.client?.id ? `/admin/clientes/${a.client.id}` : '/admin/clientes'}
+                  key={a.id}
+                  className="appt-card"
+                >
+                  <div className="appt-card__head">
+                    <div>
+                      <div className="appt-card__date">{formatDate(a.date)}</div>
+                      <div className="appt-card__time">{a.time}</div>
                     </div>
-                    <div className="appt-card__body">
-                      <Photo w={36} h={36} rounded={999} label="" />
-                      <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
-                        <H3 size={14}>{client?.name}</H3>
-                        <span className="appt-card__meta">
-                          {service?.name ?? 'Servicio'} · {a.modality === 'online' ? 'Online' : 'Presencial'}
-                        </span>
-                      </Stack>
-                    </div>
-                  </Link>
-                );
-              })}
+                    <StatusPill status={a.status} />
+                  </div>
+                  <div className="appt-card__body">
+                    <Photo w={36} h={36} rounded={999} label="" />
+                    <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+                      <H3 size={14}>{a.client?.full_name ?? a.patient_name}</H3>
+                      <span className="appt-card__meta">
+                        {a.service?.name ?? 'Servicio'} · {a.modality === 'online' ? 'Online' : 'Presencial'}
+                      </span>
+                    </Stack>
+                  </div>
+                </Link>
+              ))}
             </div>
           )}
         </Stack>
