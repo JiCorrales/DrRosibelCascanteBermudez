@@ -149,6 +149,49 @@ export function useClientBookings(clientId) {
   });
 }
 
+export function useCreateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input) => handle(api.createClient(input)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clients'] });
+    },
+  });
+}
+
+export function useDeleteClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => handle(api.deleteClient(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clients'] });
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+}
+
+export function useCreateBookingAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input) => handle(api.createBookingAdmin(input)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useDeleteBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => handle(api.deleteBooking(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
 // ─────────────────────────────────────────────
 // PORTAL paciente
 // ─────────────────────────────────────────────

@@ -330,6 +330,99 @@ export async function fetchClientBookings(clientId) {
   return ok(data.map(normalizeDbBooking));
 }
 
+// Admin: crear cliente (alta manual desde el panel)
+export async function createClient(input) {
+  // input: { name, email, phone?, age?, city?, status? }
+  if (!isSupabaseConfigured) {
+    const id = `c${String(MOCK_CLIENTS.length + 1).padStart(3, '0')}_${Date.now().toString(36)}`;
+    const created = {
+      id,
+      name: input.name,
+      firstName: (input.name || '').split(' ')[0] ?? '',
+      age: input.age ?? null,
+      email: input.email,
+      phone: input.phone ?? '',
+      sessions: 0,
+      since: new Date().toLocaleDateString('es-CR', { month: 'short', year: 'numeric' }),
+      city: input.city ?? '',
+      status: input.status ?? 'new',
+    };
+    MOCK_CLIENTS.unshift(created);
+    return ok(created);
+  }
+  const dbPatch = {
+    full_name: input.name,
+    email: input.email,
+    phone: input.phone ?? null,
+    age: input.age ?? null,
+    city: input.city ?? null,
+    status: input.status ?? 'new',
+  };
+  const { data, error } = await supabase.from('clients').insert(dbPatch).select().single();
+  if (error) return err(error);
+  return ok(data);
+}
+
+export async function deleteClient(id) {
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_CLIENTS.findIndex((c) => c.id === id);
+    if (idx >= 0) MOCK_CLIENTS.splice(idx, 1);
+    return ok({ id });
+  }
+  const { error } = await supabase.from('clients').delete().eq('id', id);
+  if (error) return err(error);
+  return ok({ id });
+}
+
+// Admin: crear cita manualmente desde el panel
+export async function createBookingAdmin(input) {
+  // input: { client_id?, patient_name, patient_email, patient_phone?, service_id, scheduled_at (ISO), duration_min, modality, status? }
+  if (!isSupabaseConfigured) {
+    const date = input.scheduled_at.slice(0, 10);
+    const time = input.scheduled_at.slice(11, 16);
+    const created = {
+      id: `a_${Date.now().toString(36)}`,
+      clientId: input.client_id ?? null,
+      serviceId: input.service_id,
+      date,
+      time,
+      status: input.status ?? 'confirmed',
+      modality: input.modality ?? 'online',
+    };
+    MOCK_APPTS.unshift(created);
+    return ok(normalizeMockBooking(created));
+  }
+  const dbInput = {
+    client_id: input.client_id ?? null,
+    service_id: input.service_id,
+    scheduled_at: input.scheduled_at,
+    duration_min: input.duration_min,
+    modality: input.modality ?? 'online',
+    patient_name: input.patient_name,
+    patient_email: input.patient_email,
+    patient_phone: input.patient_phone ?? null,
+    status: input.status ?? 'confirmed',
+  };
+  const { data, error } = await supabase
+    .from('bookings')
+    .insert(dbInput)
+    .select('*, services(name, duration_min), clients(full_name)')
+    .single();
+  if (error) return err(error);
+  return ok(normalizeDbBooking(data));
+}
+
+export async function deleteBooking(id) {
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_APPTS.findIndex((a) => a.id === id);
+    if (idx >= 0) MOCK_APPTS.splice(idx, 1);
+    return ok({ id });
+  }
+  const { error } = await supabase.from('bookings').delete().eq('id', id);
+  if (error) return err(error);
+  return ok({ id });
+}
+
 // ─────────────────────────────────────────────
 // PORTAL (paciente autenticado)
 // ─────────────────────────────────────────────
