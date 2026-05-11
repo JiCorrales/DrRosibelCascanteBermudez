@@ -10,6 +10,7 @@ const NAV = [
   { to: '/admin/citas', label: 'Citas', icon: 'doc' },
   { to: '/admin/clientes', label: 'Clientes', icon: 'users' },
   { to: '/admin/servicios', label: 'Servicios', icon: 'bookmark' },
+  { to: '/admin/redes', label: 'Redes', icon: 'chat' },
 ];
 
 const BOTTOM_NAV = [

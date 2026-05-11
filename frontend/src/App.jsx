@@ -22,6 +22,11 @@ const AdminClients      = lazy(() => import('./admin/pages/AdminClients.jsx'));
 const AdminClientDetail = lazy(() => import('./admin/pages/AdminClientDetail.jsx'));
 const AdminServices     = lazy(() => import('./admin/pages/AdminServices.jsx'));
 const AdminServiceEdit  = lazy(() => import('./admin/pages/AdminServiceEdit.jsx'));
+const AdminContentDashboard = lazy(() => import('./admin/pages/AdminContentDashboard.jsx'));
+const AdminContentEditor    = lazy(() => import('./admin/pages/AdminContentEditor.jsx'));
+const AdminContentTopics    = lazy(() => import('./admin/pages/AdminContentTopics.jsx'));
+const AdminContentLibrary   = lazy(() => import('./admin/pages/AdminContentLibrary.jsx'));
+const AdminContentSettings  = lazy(() => import('./admin/pages/AdminContentSettings.jsx'));
 
 // Portal paciente (lazy)
 const PortalShell        = lazy(() => import('./portal/PortalShell.jsx'));
@@ -89,6 +94,11 @@ export default function App() {
               <Route path="/admin/clientes/:id" element={<AdminClientDetail />} />
               <Route path="/admin/servicios" element={<AdminServices />} />
               <Route path="/admin/servicios/:id" element={<AdminServiceEdit />} />
+              <Route path="/admin/redes" element={<AdminContentDashboard />} />
+              <Route path="/admin/redes/nuevo" element={<AdminContentEditor />} />
+              <Route path="/admin/redes/temas" element={<AdminContentTopics />} />
+              <Route path="/admin/redes/biblioteca" element={<AdminContentLibrary />} />
+              <Route path="/admin/redes/ajustes" element={<AdminContentSettings />} />
             </Route>
           </Route>
 
