@@ -23,7 +23,7 @@ export default function Header() {
   return (
     <header className="site-header">
       <div className="container site-header__inner">
-        <Link to="/" className="site-header__brand" aria-label="Inicio">
+        <Link to="/" className="site-header__brand">
           <span className="dot" aria-hidden="true" />
           <span>rosibel cascante</span>
         </Link>

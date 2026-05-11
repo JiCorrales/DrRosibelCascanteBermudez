@@ -5,8 +5,8 @@
   --bg-3: #ECE4D4;      /* Marfil intermedio */
   --sage-100: #E4E8DD;  /* Salvia muy clara */
   --sage-300: #A8B89A;  /* Salvia clara — acentos, divisores */
-  --sage-500: #6B8B6E;  /* Salvia media — acción */
-  --sage-700: #4F6E54;  /* Salvia hover */
+  --sage-500: #5C7D60;  /* Salvia media — acción (oscurecido para contraste 4.5:1+) */
+  --sage-700: #3F5A45;  /* Salvia hover */
   --ink-900: #2A382A;   /* Título extra oscuro */
   --ink-700: #3D4F3B;   /* Cuerpo */
   --ink-500: #5A6F58;   /* Secundario */
@@ -118,7 +118,7 @@
   background: var(--sage-500);
   color: var(--bg);
   font-family: var(--sans);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 15px;
   padding: 13px 26px;
   min-height: 44px;
