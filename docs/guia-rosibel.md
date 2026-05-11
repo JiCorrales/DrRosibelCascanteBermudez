@@ -18,6 +18,18 @@ El proyecto tiene **tres superficies**, todas accesibles desde la URL de arriba:
 
 Lo que ves hoy es un **prototipo funcional**. Cada botón abre lo que tiene que abrir, los flujos completos (reservar una cita, navegar el panel, ver el portal del paciente) funcionan de extremo a extremo. La parte que **todavía no está conectada** es la base de datos: si una persona reserva, no se guarda en ningún lado, no te llega un correo, y vos no podés ver esa reserva en tu panel. Esa es la última fase del proyecto — primero quería que vieras la experiencia completa y nos pusiéramos de acuerdo en cómo se ve y qué cambia, antes de invertir tiempo en lo que no se ve (servidores, correos, pagos).
 
+### Recorrido sugerido (15 min)
+
+Si nunca lo abriste, te recomiendo recorrerlo en este orden, así ves todo como una historia natural:
+
+1. **Empezá como un paciente nuevo.** Abrí <https://jicorrales.github.io/DrRosibelCascanteBermudez/>. Hacé scroll por toda la home. Tocá "Servicios" en el menú, entrá a alguno (`Terapia individual`, por ejemplo) y leé el detalle.
+2. **Reservá una cita.** Tocá "Agendar cita" o "Reservar". Pasá por los 4 pasos del wizard (servicio → fecha/hora → datos → confirmación). Usá datos inventados o los tuyos — no se guarda nada.
+3. **Volvé al inicio y cambiá a tu rol.** Andá manualmente a `/admin/login` (agregás `admin/login` al final de la URL). Poné cualquier correo y contraseña. Vas a caer en el dashboard.
+4. **Pasá por las 6 pantallas del panel admin** usando el menú: Dashboard, Calendario, Disponibilidad, Citas, Clientes, Servicios. Tocá un cliente para ver su detalle. Tocá "Editar" en un servicio.
+5. **Cerrá sesión y cambiate a paciente.** Andá a `/portal/login`. Vas a entrar como "María". Recorré las 4 pestañas inferiores: Inicio, Citas, Tareas, Documentos.
+
+> **Tip:** podés probarlo desde tu celular también — sólo abrí la misma URL. El admin se compacta automáticamente, y el portal del paciente se siente como app nativa.
+
 ---
 
 ## 2. Lo que ven tus pacientes (sitio público)
