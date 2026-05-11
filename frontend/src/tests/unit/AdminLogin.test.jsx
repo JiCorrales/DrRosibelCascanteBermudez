@@ -8,10 +8,10 @@ describe('AdminLogin (mock auth)', () => {
     localStorage.clear();
   });
 
-  it('renders the form with default demo credentials', () => {
+  it('renders the login form with empty fields', () => {
     renderWithRouter(<AdminLogin />, { route: '/admin/login' });
     expect(screen.getByRole('heading', { name: /iniciar sesi[oó]n/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/correo/i)).toHaveValue('rosibel@demo.cr');
+    expect(screen.getByLabelText(/correo/i)).toHaveValue('');
     expect(screen.getByLabelText(/contrase[ñn]a/i)).toBeInTheDocument();
   });
 
@@ -19,6 +19,8 @@ describe('AdminLogin (mock auth)', () => {
     const user = userEvent.setup();
     renderWithRouter(<AdminLogin />, { route: '/admin/login' });
 
+    await user.type(screen.getByLabelText(/correo/i), 'demo@example.com');
+    await user.type(screen.getByLabelText(/contrase[ñn]a/i), 'demo1234');
     await user.click(screen.getByRole('button', { name: /entrar/i }));
 
     await waitFor(() => {
@@ -32,6 +34,8 @@ describe('AdminLogin (mock auth)', () => {
     const user = userEvent.setup();
     renderWithRouter(<AdminLogin />, { route: '/admin/login' });
 
+    await user.type(screen.getByLabelText(/correo/i), 'demo@example.com');
+    await user.type(screen.getByLabelText(/contrase[ñn]a/i), 'demo1234');
     const btn = screen.getByRole('button', { name: /entrar/i });
     await user.click(btn);
     expect(btn).toBeDisabled();

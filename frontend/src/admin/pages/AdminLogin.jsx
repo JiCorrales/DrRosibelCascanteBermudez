@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth.js';
+import { isSupabaseConfigured } from '../../lib/supabase.js';
 import { Btn, Stack, Row, Eyebrow, Body, Meta } from '../../components/primitives.jsx';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, role } = useAuth();
-  const [email, setEmail] = useState('rosibel@demo.cr');
-  const [password, setPassword] = useState('demo1234');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const from = location.state?.from || '/admin';
 
@@ -21,13 +23,26 @@ export default function AdminLogin() {
     document.title = 'Admin · Iniciar sesión · Dra. Rosibel Cascante Bermúdez';
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setTimeout(() => {
-      signIn('admin', { name: 'Rosibel Cascante', email });
+    setErrorMsg('');
+    try {
+      if (isSupabaseConfigured) {
+        const { error } = await signIn('admin-password', { email, password });
+        if (error) {
+          setErrorMsg(error.message ?? 'No pudimos iniciar sesión. Revisá tus credenciales.');
+          return;
+        }
+      } else {
+        // Modo demo (sin backend): cualquier credencial entra
+        await new Promise((r) => setTimeout(r, 200));
+        await signIn('admin', { name: 'Rosibel Cascante', email });
+      }
       navigate(from === '/admin/login' ? '/admin' : from, { replace: true });
-    }, 250);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -102,12 +117,30 @@ export default function AdminLogin() {
               </a>
             </Row>
 
+            {errorMsg && (
+              <div
+                role="alert"
+                style={{
+                  background: 'var(--danger-100)',
+                  color: 'var(--danger-500)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--r-md)',
+                  border: '1px solid rgba(184,84,80,0.28)',
+                  fontSize: 13,
+                }}
+              >
+                {errorMsg}
+              </div>
+            )}
+
             <Btn block type="submit" disabled={submitting} icon={false}>
               {submitting ? 'Entrando…' : 'Entrar'}
             </Btn>
 
             <Meta style={{ textAlign: 'center' }}>
-              Demo: cualquier credencial entra. Acceso real con 2FA al integrar backend.
+              {isSupabaseConfigured
+                ? 'Sesión segura. Las credenciales viajan cifradas.'
+                : 'Demo: cualquier credencial entra (sin backend conectado).'}
             </Meta>
           </Stack>
         </form>

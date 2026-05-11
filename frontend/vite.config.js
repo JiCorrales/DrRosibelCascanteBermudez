@@ -27,5 +27,10 @@ export default defineConfig({
     setupFiles: ['./src/tests/setup.js'],
     include: ['src/**/*.test.{js,jsx}'],
     css: true,
+    // Forzamos modo mock en unit tests — no levantamos red a Supabase desde jsdom.
+    env: {
+      VITE_SUPABASE_URL: '',
+      VITE_SUPABASE_ANON_KEY: '',
+    },
   },
 });

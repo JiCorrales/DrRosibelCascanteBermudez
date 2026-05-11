@@ -22,12 +22,13 @@ const AdminServices     = lazy(() => import('./admin/pages/AdminServices.jsx'));
 const AdminServiceEdit  = lazy(() => import('./admin/pages/AdminServiceEdit.jsx'));
 
 // Portal paciente (lazy)
-const PortalShell = lazy(() => import('./portal/PortalShell.jsx'));
-const PortalLogin = lazy(() => import('./portal/pages/PortalLogin.jsx'));
-const PortalHome  = lazy(() => import('./portal/pages/PortalHome.jsx'));
-const PortalTasks = lazy(() => import('./portal/pages/PortalTasks.jsx'));
-const PortalAppts = lazy(() => import('./portal/pages/PortalAppts.jsx'));
-const PortalDocs  = lazy(() => import('./portal/pages/PortalDocs.jsx'));
+const PortalShell        = lazy(() => import('./portal/PortalShell.jsx'));
+const PortalLogin        = lazy(() => import('./portal/pages/PortalLogin.jsx'));
+const PortalAuthCallback = lazy(() => import('./portal/pages/PortalAuthCallback.jsx'));
+const PortalHome         = lazy(() => import('./portal/pages/PortalHome.jsx'));
+const PortalTasks        = lazy(() => import('./portal/pages/PortalTasks.jsx'));
+const PortalAppts        = lazy(() => import('./portal/pages/PortalAppts.jsx'));
+const PortalDocs         = lazy(() => import('./portal/pages/PortalDocs.jsx'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -89,6 +90,7 @@ export default function App() {
 
           {/* Portal paciente */}
           <Route path="/portal/login" element={<PortalLogin />} />
+          <Route path="/portal/auth/callback" element={<PortalAuthCallback />} />
           <Route element={<ProtectedRoute role="patient" redirectTo="/portal/login" />}>
             <Route element={<PortalShell />}>
               <Route path="/portal" element={<PortalHome />} />
