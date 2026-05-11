@@ -22,7 +22,11 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') ?? 'cascantebermudezrosibel@gmail.com';
+// TEMPORAL: Resend cuenta sin dominio verificado sólo entrega al dueño de la
+// cuenta. Por ahora va a jocorrales.dev@gmail.com (jicorrales). Cuando se
+// verifique rosibelpsicologa.cr en Resend, cambiar a la doctora.
+// Ver PENDIENTES.md.
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') ?? 'jocorrales.dev@gmail.com';
 const FROM_ADDRESS = Deno.env.get('FROM_ADDRESS') ?? 'onboarding@resend.dev';
 const SITE_URL = Deno.env.get('SITE_URL') ?? 'https://jicorrales.github.io/DrRosibelCascanteBermudez';
 
