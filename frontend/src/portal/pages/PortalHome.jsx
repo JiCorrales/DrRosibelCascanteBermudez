@@ -1,45 +1,116 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Btn, Stack, Row, H3, Body, Meta, Eyebrow, Icon } from '../../components/primitives.jsx';
-import { PORTAL_USER, PORTAL_TASKS, PORTAL_APPTS, PORTAL_DOCS } from '../../mock/admin-data.js';
+import { useAuth } from '../../auth/useAuth.js';
+import { useMyBookings } from '../../lib/queries.js';
+import { PORTAL_TASKS, PORTAL_DOCS } from '../../mock/admin-data.js';
+
+const SHORT_DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+function formatApptDate(isoDate) {
+  if (!isoDate) return '—';
+  const d = new Date(isoDate + 'T12:00:00');
+  return `${SHORT_DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Buenos días.';
+  if (h < 19) return 'Buenas tardes.';
+  return 'Buenas noches.';
+}
 
 export default function PortalHome() {
   useEffect(() => {
     document.title = 'Inicio · Portal · Rosibel';
   }, []);
 
-  const nextAppt = PORTAL_APPTS.find((a) => a.next);
+  const { user } = useAuth();
+  const email = user?.email;
+  const bookingsQ = useMyBookings(email);
+
+  const { nextAppt, firstName } = useMemo(() => {
+    const all = bookingsQ.data ?? [];
+    const now = new Date();
+    const upcoming = all
+      .filter((b) => new Date(b.scheduled_at) > now && b.status !== 'cancelled' && b.status !== 'no_show')
+      .sort((a, b) => (a.scheduled_at < b.scheduled_at ? -1 : 1));
+    const fn = (user?.name ?? all[0]?.client?.full_name ?? '').split(' ')[0] || 'paciente';
+    return { nextAppt: upcoming[0] ?? null, firstName: fn };
+  }, [bookingsQ.data, user]);
+
   const previewTasks = PORTAL_TASKS.slice(0, 3);
   const previewDocs = (PORTAL_DOCS ?? []).slice(0, 3);
 
   return (
     <Stack gap={24}>
       <Stack gap={4}>
-        <Meta>Hola, {PORTAL_USER.firstName}</Meta>
-        <h1 className="portal-page-title">Buenas tardes.</h1>
+        <Meta>Hola, {firstName}</Meta>
+        <h1 className="portal-page-title">{greeting()}</h1>
       </Stack>
 
-      {nextAppt && (
+      {bookingsQ.isLoading && (
+        <article className="wf-card" style={{ padding: 20 }}>
+          <Body style={{ color: 'var(--ink-500)' }}>Cargando tus citas…</Body>
+        </article>
+      )}
+
+      {bookingsQ.isError && (
+        <article
+          role="alert"
+          className="wf-card"
+          style={{
+            padding: 20,
+            background: 'var(--danger-100)',
+            color: 'var(--danger-500)',
+            border: '1px solid rgba(184,84,80,0.28)',
+          }}
+        >
+          <Body style={{ color: 'inherit' }}>
+            No pudimos cargar tus citas: {bookingsQ.error?.message ?? 'error desconocido'}
+          </Body>
+        </article>
+      )}
+
+      {!bookingsQ.isLoading && !bookingsQ.isError && nextAppt && (
         <article className="wf-card sage" style={{ padding: 24 }}>
           <div className="portal-hero-card">
             <Stack gap={10}>
               <Eyebrow style={{ color: 'var(--sage-700)' }}>Próxima cita</Eyebrow>
               <H3 size={22}>
-                {nextAppt.date} · {nextAppt.time}
+                {formatApptDate(nextAppt.date)} · {nextAppt.time}
               </H3>
               <Meta>
-                {nextAppt.service} · {nextAppt.modality}
+                {nextAppt.service?.name ?? 'Sesión'} ·{' '}
+                {nextAppt.modality === 'online' ? 'Online' : 'Presencial'}
               </Meta>
             </Stack>
             <Row gap={10} wrap>
-              <Btn small icon={false}>
-                Unirme online
-              </Btn>
+              {nextAppt.modality === 'online' && (
+                <Btn small icon={false}>
+                  Unirme online
+                </Btn>
+              )}
               <Btn small ghost icon={false}>
                 Reagendar
               </Btn>
             </Row>
           </div>
+        </article>
+      )}
+
+      {!bookingsQ.isLoading && !bookingsQ.isError && !nextAppt && (
+        <article className="wf-card" style={{ padding: 20 }}>
+          <Stack gap={10}>
+            <H3 size={16}>Sin próximas citas</H3>
+            <Body size={14}>Reservá una para empezar.</Body>
+            <div>
+              <Btn as={Link} to="/reservar" small icon={false}>
+                Reservar cita
+              </Btn>
+            </div>
+          </Stack>
         </article>
       )}
 
