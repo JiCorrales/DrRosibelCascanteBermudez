@@ -12,7 +12,12 @@ import {
   useDocumentsForClient,
   useCreateDocument,
   useDeleteDocument,
+  useClinicalNotes,
+  useCreateClinicalNote,
+  useUpdateClinicalNote,
+  useDeleteClinicalNote,
 } from '../../lib/queries.js';
+import { WHATSAPP_PREFILL, buildWaUrlForPhone } from '../../data.js';
 
 const TABS = ['Historial', 'Notas', 'Tareas', 'Documentos', 'Pagos'];
 
@@ -33,6 +38,7 @@ export default function AdminClientDetail() {
   const clientQ = useClient(id);
   const apptsQ = useClientBookings(id);
   const [tab, setTab] = useState('Historial');
+  const [showMessage, setShowMessage] = useState(false);
 
   const client = clientQ.data;
   const appts = apptsQ.data ?? [];
@@ -135,7 +141,7 @@ export default function AdminClientDetail() {
                   </Row>
                 )}
               </Stack>
-              <Btn block small icon={false}>
+              <Btn block small icon={false} onClick={() => setShowMessage(true)}>
                 Enviar mensaje
               </Btn>
             </Stack>
@@ -221,11 +227,7 @@ export default function AdminClientDetail() {
                     ))}
                   </Stack>
                 )}
-                {tab === 'Notas' && (
-                  <Body style={{ color: 'var(--ink-500)' }}>
-                    Las notas clínicas vivirán acá. Quedan encriptadas en reposo y solo vos las ves.
-                  </Body>
-                )}
+                {tab === 'Notas' && <NotesTab clientId={id} clientName={firstNameOf(client)} />}
                 {tab === 'Tareas' && <TasksTab clientId={id} clientName={firstNameOf(client)} />}
                 {tab === 'Documentos' && <DocumentsTab clientId={id} clientName={firstNameOf(client)} />}
                 {tab === 'Pagos' && (
@@ -239,12 +241,308 @@ export default function AdminClientDetail() {
         </div>
       </div>
 
+      {showMessage && client && (
+        <MessageClientModal client={client} onClose={() => setShowMessage(false)} />
+      )}
+
       <style>{`
         @media (max-width: 1100px) {
           .client-detail-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </>
+  );
+}
+
+function MessageClientModal({ client, onClose }) {
+  const firstName = firstNameOf(client);
+  const waMessage = WHATSAPP_PREFILL.admin_to_client.replace('{{nombre}}', firstName);
+  const waUrl = buildWaUrlForPhone(client.phone, waMessage);
+  const mailSubject = encodeURIComponent('Consulta · Rosibel Cascante');
+  const mailBody = encodeURIComponent(`Hola ${firstName},\n\n`);
+  const mailUrl = client.email ? `mailto:${client.email}?subject=${mailSubject}&body=${mailBody}` : null;
+
+  return (
+    <div className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="msg-client-title">
+      <button
+        type="button"
+        className="admin-modal__backdrop"
+        onClick={onClose}
+        aria-label="Cerrar"
+      />
+      <div className="admin-modal__panel" style={{ maxWidth: 420 }}>
+        <Row justify="space-between" align="center" style={{ marginBottom: 12 }}>
+          <H3 id="msg-client-title" size={18}>Escribirle a {firstName}</H3>
+          <button
+            type="button"
+            className="admin-modal__close"
+            onClick={onClose}
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </Row>
+        <Stack gap={14}>
+          <Meta>Elegí el canal. El mensaje queda pre-llenado, podés editarlo antes de enviar.</Meta>
+
+          <a
+            href={waUrl ?? undefined}
+            target={waUrl ? '_blank' : undefined}
+            rel="noopener noreferrer"
+            aria-disabled={!waUrl}
+            onClick={(e) => {
+              if (!waUrl) {
+                e.preventDefault();
+                return;
+              }
+              onClose();
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '14px 18px',
+              borderRadius: 'var(--r-md)',
+              background: waUrl ? '#1FA851' : 'var(--line-2)',
+              color: waUrl ? '#fff' : 'var(--ink-300)',
+              textDecoration: 'none',
+              fontFamily: 'var(--sans)',
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: waUrl ? 'pointer' : 'not-allowed',
+              opacity: waUrl ? 1 : 0.7,
+            }}
+            title={waUrl ? `WhatsApp a ${client.phone}` : 'Este cliente no tiene teléfono registrado'}
+          >
+            <Icon name="whatsapp" size={18} />
+            <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+              <span>WhatsApp</span>
+              <span style={{ fontSize: 12, fontWeight: 400, opacity: 0.85 }}>
+                {waUrl ? client.phone : 'Sin teléfono registrado'}
+              </span>
+            </Stack>
+          </a>
+
+          <a
+            href={mailUrl ?? undefined}
+            aria-disabled={!mailUrl}
+            onClick={(e) => {
+              if (!mailUrl) {
+                e.preventDefault();
+                return;
+              }
+              onClose();
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '14px 18px',
+              borderRadius: 'var(--r-md)',
+              background: mailUrl ? 'var(--sage-500)' : 'var(--line-2)',
+              color: mailUrl ? '#fff' : 'var(--ink-300)',
+              textDecoration: 'none',
+              fontFamily: 'var(--sans)',
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: mailUrl ? 'pointer' : 'not-allowed',
+              opacity: mailUrl ? 1 : 0.7,
+            }}
+            title={mailUrl ? `Correo a ${client.email}` : 'Este cliente no tiene correo registrado'}
+          >
+            <Icon name="mail" size={18} />
+            <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+              <span>Correo</span>
+              <span style={{ fontSize: 12, fontWeight: 400, opacity: 0.85 }}>
+                {mailUrl ? client.email : 'Sin correo registrado'}
+              </span>
+            </Stack>
+          </a>
+
+          <Row gap={8} justify="flex-end" style={{ marginTop: 4 }}>
+            <Btn ghost small icon={false} onClick={onClose} type="button">
+              Cancelar
+            </Btn>
+          </Row>
+        </Stack>
+      </div>
+    </div>
+  );
+}
+
+function NotesTab({ clientId, clientName }) {
+  const notesQ = useClinicalNotes(clientId);
+  const createNote = useCreateClinicalNote();
+  const updateNote = useUpdateClinicalNote();
+  const deleteNote = useDeleteClinicalNote();
+  const [body, setBody] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editingBody, setEditingBody] = useState('');
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!body.trim()) return;
+    try {
+      await createNote.mutateAsync({ client_id: clientId, body: body.trim() });
+      setBody('');
+    } catch {
+      /* error visible vía mutation isError */
+    }
+  };
+
+  const startEdit = (note) => {
+    setEditingId(note.id);
+    setEditingBody(note.body);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingBody('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingBody.trim()) return;
+    try {
+      await updateNote.mutateAsync({ id: editingId, body: editingBody.trim() });
+      cancelEdit();
+    } catch {
+      /* error visible vía mutation isError */
+    }
+  };
+
+  const handleDelete = (note) => {
+    if (window.confirm('¿Eliminar esta nota? No se puede recuperar.')) {
+      deleteNote.mutate(note.id);
+    }
+  };
+
+  const notes = notesQ.data ?? [];
+  const formatDate = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleString('es-CR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  return (
+    <Stack gap={20}>
+      <form onSubmit={handleCreate}>
+        <Stack gap={10}>
+          <H3 size={14}>Nueva nota sobre {clientName}</H3>
+          <Meta>Las notas son privadas. Solo vos las ves — el paciente nunca las verá.</Meta>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Observaciones de la sesión, plan de trabajo, hipótesis…"
+            rows={5}
+            style={{
+              background: '#fff',
+              border: '1px solid var(--line-2)',
+              borderRadius: 'var(--r-md)',
+              padding: '12px 14px',
+              fontSize: 14,
+              fontFamily: 'var(--sans)',
+              outline: 'none',
+              width: '100%',
+              resize: 'vertical',
+              minHeight: 100,
+            }}
+          />
+          <Row gap={8}>
+            <Btn type="submit" small icon={false} disabled={createNote.isPending || !body.trim()}>
+              {createNote.isPending ? 'Guardando…' : 'Guardar nota'}
+            </Btn>
+            {createNote.isError && (
+              <Meta style={{ color: 'var(--danger-500)' }}>
+                Error: {createNote.error?.message}
+              </Meta>
+            )}
+          </Row>
+        </Stack>
+      </form>
+
+      <div className="wf-divider" />
+
+      <Stack gap={10}>
+        <Meta>{notes.length} nota{notes.length !== 1 ? 's' : ''}</Meta>
+        {notesQ.isLoading && <Body style={{ color: 'var(--ink-500)' }}>Cargando…</Body>}
+        {!notesQ.isLoading && notes.length === 0 && (
+          <Body style={{ color: 'var(--ink-500)' }}>Aún no hay notas para {clientName}.</Body>
+        )}
+        {notes.map((n) => {
+          const isEditing = editingId === n.id;
+          return (
+            <article key={n.id} className="wf-card" style={{ padding: 14 }}>
+              <Stack gap={8}>
+                <Row justify="space-between" align="flex-start">
+                  <Meta>
+                    {formatDate(n.created_at)}
+                    {n.updated_at && n.updated_at !== n.created_at && ' · editada'}
+                  </Meta>
+                  {!isEditing && (
+                    <Row gap={6}>
+                      <Btn small ghost icon={false} onClick={() => startEdit(n)}>
+                        Editar
+                      </Btn>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(n)}
+                        aria-label="Eliminar nota"
+                        style={{
+                          background: 'transparent',
+                          border: 0,
+                          padding: 6,
+                          cursor: 'pointer',
+                          color: 'var(--ink-300)',
+                        }}
+                      >
+                        <Icon name="trash" size={14} />
+                      </button>
+                    </Row>
+                  )}
+                </Row>
+                {isEditing ? (
+                  <Stack gap={8}>
+                    <textarea
+                      value={editingBody}
+                      onChange={(e) => setEditingBody(e.target.value)}
+                      rows={5}
+                      style={{
+                        background: '#fff',
+                        border: '1px solid var(--line-2)',
+                        borderRadius: 'var(--r-md)',
+                        padding: '10px 14px',
+                        fontSize: 14,
+                        fontFamily: 'var(--sans)',
+                        outline: 'none',
+                        width: '100%',
+                        resize: 'vertical',
+                        minHeight: 100,
+                      }}
+                    />
+                    <Row gap={6}>
+                      <Btn small icon={false} onClick={saveEdit} disabled={updateNote.isPending || !editingBody.trim()}>
+                        {updateNote.isPending ? 'Guardando…' : 'Guardar'}
+                      </Btn>
+                      <Btn small ghost icon={false} onClick={cancelEdit} type="button">
+                        Cancelar
+                      </Btn>
+                    </Row>
+                  </Stack>
+                ) : (
+                  <Body size={14} style={{ whiteSpace: 'pre-wrap' }}>{n.body}</Body>
+                )}
+              </Stack>
+            </article>
+          );
+        })}
+      </Stack>
+    </Stack>
   );
 }
 

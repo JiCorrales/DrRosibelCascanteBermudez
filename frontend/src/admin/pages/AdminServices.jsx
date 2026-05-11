@@ -2,14 +2,16 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminTopbar } from '../AdminShell.jsx';
 import { Btn, Stack, Row, H3, Body, Meta, Pill, Icon } from '../../components/primitives.jsx';
-import { useServices, useUpdateService } from '../../lib/queries.js';
+import { useServices, useUpdateService, useDuplicateService } from '../../lib/queries.js';
 import { formatColon } from '../../data.js';
 
 export default function AdminServices() {
   // activeOnly=false → la admin ve también los desactivados
   const servicesQ = useServices({ activeOnly: false });
   const updateService = useUpdateService();
+  const duplicateService = useDuplicateService();
   const services = servicesQ.data ?? [];
+  const [feedback, setFeedback] = React.useState({ kind: null, msg: '' });
 
   useEffect(() => {
     document.title = 'Servicios · Admin · Rosibel';
@@ -17,6 +19,22 @@ export default function AdminServices() {
 
   const toggle = (s) => {
     updateService.mutate({ id: s.id, patch: { active: !s.active } });
+  };
+
+  const handleDuplicate = async (s) => {
+    setFeedback({ kind: null, msg: '' });
+    try {
+      const copy = await duplicateService.mutateAsync(s.id);
+      setFeedback({
+        kind: 'ok',
+        msg: `Servicio duplicado como "${copy.name}". Está desactivado — editalo antes de activar.`,
+      });
+    } catch (err) {
+      setFeedback({
+        kind: 'error',
+        msg: err?.message ?? 'No pudimos duplicar el servicio.',
+      });
+    }
   };
 
   return (
@@ -28,9 +46,31 @@ export default function AdminServices() {
             ? 'Cargando…'
             : `${services.length} servicio${services.length !== 1 ? 's' : ''} configurado${services.length !== 1 ? 's' : ''}`
         }
-        action={<Btn small icon={false}>+ Nuevo</Btn>}
+        action={
+          <Btn as={Link} to="/admin/servicios/nuevo" small icon={false}>
+            + Nuevo
+          </Btn>
+        }
       />
       <div className="admin-content">
+        {feedback.msg && (
+          <Body
+            role="status"
+            style={{
+              marginBottom: 16,
+              padding: '12px 16px',
+              background: feedback.kind === 'ok' ? 'var(--sage-100)' : 'var(--danger-100)',
+              color: feedback.kind === 'ok' ? 'var(--sage-700)' : 'var(--danger-500)',
+              border:
+                feedback.kind === 'ok'
+                  ? '1px solid rgb(var(--sage-rgb) / 0.28)'
+                  : '1px solid rgb(var(--danger-rgb) / 0.28)',
+              borderRadius: 'var(--r-md)',
+            }}
+          >
+            {feedback.msg}
+          </Body>
+        )}
         {servicesQ.isError && (
           <Body
             role="alert"
@@ -120,8 +160,16 @@ export default function AdminServices() {
                     <Btn as={Link} to={`/admin/servicios/${s.id}`} small ghost icon={false}>
                       Editar
                     </Btn>
-                    <Btn small ghost icon={false}>
-                      Duplicar
+                    <Btn
+                      small
+                      ghost
+                      icon={false}
+                      onClick={() => handleDuplicate(s)}
+                      disabled={duplicateService.isPending && duplicateService.variables === s.id}
+                    >
+                      {duplicateService.isPending && duplicateService.variables === s.id
+                        ? 'Duplicando…'
+                        : 'Duplicar'}
                     </Btn>
                   </Row>
                 </Stack>

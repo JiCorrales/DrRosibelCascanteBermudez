@@ -2,8 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AdminTopbar } from '../AdminShell.jsx';
 import { Btn, Stack, Row, H3, Body, Meta, Pill } from '../../components/primitives.jsx';
-import { useService, useUpdateService } from '../../lib/queries.js';
+import { useService, useUpdateService, useCreateService } from '../../lib/queries.js';
 import { formatColon } from '../../data.js';
+
+const EMPTY_SERVICE = {
+  id: '',
+  name: '',
+  desc: '',
+  dur: 50,
+  price: 0,
+  modality: 'both',
+  buffer: 15,
+  forYou: [],
+  active: false,
+};
 
 const labelStyle = {
   fontSize: 12,
@@ -36,27 +48,33 @@ const BUFFERS = [0, 15, 30];
 export default function AdminServiceEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const serviceQ = useService(id);
+  const isNew = id === 'nuevo';
+  const serviceQ = useService(isNew ? null : id);
   const updateService = useUpdateService();
-  const [form, setForm] = useState(null);
+  const createService = useCreateService();
+  const [form, setForm] = useState(isNew ? EMPTY_SERVICE : null);
   const [feedback, setFeedback] = useState({ kind: null, msg: '' });
 
-  // Cargamos el form cuando llegan los datos
+  // Cargamos el form cuando llegan los datos (sólo en modo edición)
   useEffect(() => {
-    if (serviceQ.data && !form) {
+    if (!isNew && serviceQ.data && !form) {
       setForm(serviceQ.data);
     }
-  }, [serviceQ.data, form]);
+  }, [serviceQ.data, form, isNew]);
 
   useEffect(() => {
-    if (serviceQ.data) document.title = `Editar ${serviceQ.data.name} · Admin`;
-  }, [serviceQ.data]);
+    if (isNew) {
+      document.title = 'Nuevo servicio · Admin';
+    } else if (serviceQ.data) {
+      document.title = `Editar ${serviceQ.data.name} · Admin`;
+    }
+  }, [serviceQ.data, isNew]);
 
-  if (!serviceQ.isLoading && !serviceQ.isError && serviceQ.data === null) {
+  if (!isNew && !serviceQ.isLoading && !serviceQ.isError && serviceQ.data === null) {
     return <Navigate to="/admin/servicios" replace />;
   }
 
-  if (serviceQ.isLoading || !form) {
+  if (!isNew && (serviceQ.isLoading || !form)) {
     return (
       <>
         <AdminTopbar title="Editar servicio" />
@@ -68,12 +86,31 @@ export default function AdminServiceEdit() {
   }
 
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
-  const initial = serviceQ.data;
+  const initial = isNew ? null : serviceQ.data;
+  const pending = updateService.isPending || createService.isPending;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFeedback({ kind: null, msg: '' });
+    if (!form.name?.trim()) {
+      setFeedback({ kind: 'error', msg: 'El nombre es obligatorio.' });
+      return;
+    }
     try {
+      if (isNew) {
+        const created = await createService.mutateAsync({
+          name: form.name.trim(),
+          desc: form.desc,
+          dur: form.dur,
+          price: form.price,
+          modality: form.modality,
+          buffer: form.buffer,
+          forYou: form.forYou,
+          active: form.active,
+        });
+        navigate(`/admin/servicios/${created.id}`, { replace: true });
+        return;
+      }
       await updateService.mutateAsync({
         id: form.id,
         patch: {
@@ -90,7 +127,7 @@ export default function AdminServiceEdit() {
     } catch (err) {
       setFeedback({
         kind: 'error',
-        msg: err?.message ?? 'No pudimos guardar los cambios.',
+        msg: err?.message ?? (isNew ? 'No pudimos crear el servicio.' : 'No pudimos guardar los cambios.'),
       });
     }
   };
@@ -98,8 +135,8 @@ export default function AdminServiceEdit() {
   return (
     <>
       <AdminTopbar
-        title="Editar servicio"
-        sub={initial?.name}
+        title={isNew ? 'Nuevo servicio' : 'Editar servicio'}
+        sub={isNew ? 'Quedará desactivado hasta que lo publiques.' : initial?.name}
         action={
           <Btn as={Link} to="/admin/servicios" ghost small icon={false}>
             ← Volver
@@ -240,10 +277,12 @@ export default function AdminServiceEdit() {
                 <Btn
                   type="submit"
                   icon={false}
-                  disabled={updateService.isPending}
-                  style={{ opacity: updateService.isPending ? 0.5 : 1 }}
+                  disabled={pending}
+                  style={{ opacity: pending ? 0.5 : 1 }}
                 >
-                  {updateService.isPending ? 'Guardando…' : 'Guardar cambios'}
+                  {pending
+                    ? (isNew ? 'Creando…' : 'Guardando…')
+                    : (isNew ? 'Crear servicio' : 'Guardar cambios')}
                 </Btn>
                 <Btn
                   type="button"

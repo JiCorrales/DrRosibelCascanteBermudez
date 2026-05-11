@@ -153,9 +153,34 @@ export default function AdminCalendar() {
               </H3>
             </Row>
             <Row gap={6} role="tablist" aria-label="Vista del calendario">
-              <Pill outline>Día</Pill>
-              <Pill>Semana</Pill>
-              <Pill outline>Mes</Pill>
+              <button
+                type="button"
+                role="tab"
+                aria-selected="false"
+                disabled
+                title="Próximamente: vista diaria"
+                style={{ all: 'unset', cursor: 'not-allowed', opacity: 0.45 }}
+              >
+                <Pill outline>Día</Pill>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected="true"
+                style={{ all: 'unset', cursor: 'default' }}
+              >
+                <Pill>Semana</Pill>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected="false"
+                disabled
+                title="Próximamente: vista mensual"
+                style={{ all: 'unset', cursor: 'not-allowed', opacity: 0.45 }}
+              >
+                <Pill outline>Mes</Pill>
+              </button>
             </Row>
           </Row>
 

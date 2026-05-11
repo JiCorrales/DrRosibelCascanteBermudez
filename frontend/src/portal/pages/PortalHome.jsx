@@ -89,12 +89,26 @@ export default function PortalHome() {
               </Meta>
             </Stack>
             <Row gap={10} wrap>
-              {nextAppt.modality === 'online' && (
-                <Btn small icon={false}>
+              {nextAppt.modality === 'online' && nextAppt.meeting_url && (
+                <Btn
+                  small
+                  icon={false}
+                  as="a"
+                  href={nextAppt.meeting_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Unirme online
                 </Btn>
               )}
-              <Btn small ghost icon={false}>
+              <Btn
+                small
+                ghost
+                icon={false}
+                as={Link}
+                to="/reservar"
+                title="Por ahora reagendar = reservar una nueva y cancelar la actual"
+              >
                 Reagendar
               </Btn>
               <WhatsAppButton

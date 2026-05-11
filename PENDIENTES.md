@@ -65,16 +65,57 @@ Pequeñas tareas a no olvidar. Lo grande va al plan en `~/.claude/plans/`.
 - [ ] **Año de copyright dinámico** en el footer: revisar que se actualice solo
       (ya usa `new Date().getFullYear()`, OK).
 
+## Botones de UI sin implementar (auditoría 2026-05-11)
+
+**Estado:** resuelta el 2026-05-11 vía migración `0012_ui_audit_followup` + capa de datos (api.js/queries.js) extendida + UI por pantalla.
+
+### 🔴 Sin handler
+
+- [x] **AdminServices** — botón **"+ Nuevo"** ahora navega a `/admin/servicios/nuevo` (modo creación de `AdminServiceEdit`).
+- [x] **AdminServices** — botón **"Duplicar"** llama `useDuplicateService` (crea copia desactivada con nombre "X (copia)").
+- [x] **AdminAvailability** — botón 🗑 en días bloqueados llama `useDeleteAvailabilityOverride` con confirm.
+- [x] **AdminAvailability** — botón **"+ Bloquear fechas"** abre `BlockOverrideModal` (date + nota opcional → `useCreateAvailabilityOverride`).
+- [x] **AdminClientDetail** — botón **"Enviar mensaje"** abre `MessageClientModal` con dos opciones: WhatsApp al teléfono del cliente (`buildWaUrlForPhone` + prefill `admin_to_client`) y mailto al correo.
+- [x] **PortalHome** — botón **"Unirme online"** ahora aparece solo si `nextAppt.modality === 'online' && nextAppt.meeting_url`. La columna `meeting_url` ya está en `bookings` (migración 0012); falta UI admin para setearla (ver pendiente abajo).
+- [x] **PortalHome** — botón **"Reagendar"** ahora es `Link to="/reservar"` (mismo patrón que `/portal/citas`).
+- [x] **AdminCalendar** — pills **"Día / Mes"** quedan deshabilitadas con `title="Próximamente"`. "Semana" es la única vista por ahora. Implementación completa pendiente abajo.
+
+### 🟠 Tabs con placeholder
+
+- [x] **AdminClientDetail** tab **"Notas"** — reemplazado por `NotesTab` con CRUD completo contra `clinical_notes` (RLS admin-only). Crear, editar, eliminar.
+- [ ] **AdminClientDetail** tab **"Pagos"** — sigue como placeholder. Esperando integración Tilopay (ver "Mejoras técnicas posponibles" → Pagos).
+
+### 🟡 Funciona localmente pero no persiste
+
+- [x] **AdminAvailability** horarios semanales — `toggleDay` ahora persiste vía `useUpdateAvailabilityRule` (tabla `availability_rules`).
+- [x] **AdminAvailability** buffer entre citas — persiste en `app_settings.buffer_min` vía `useUpdateSetting` (tabla creada en migración 0012).
+- [x] **AdminAvailability** días bloqueados — leídos desde `availability_overrides` (no más `BLOCKED_DATES` del mock).
+
+### 🟢 Acciones que faltan a nivel UI
+
+- [x] **AdminAppts** — cada fila tiene menú `⋯` con: Confirmar (si pending), Marcar completada / no-show (si pasó la fecha), Cancelar con motivo (prompt), Eliminar. Usa `useUpdateBookingStatus`.
+- [ ] **AdminCalendar** — menú contextual al click en cita: **pendiente**. Hoy el click solo navega; falta popover con acciones rápidas (confirmar/cancelar/marcar). Ver follow-ups abajo.
+
+### Follow-ups derivados de esta auditoría
+
+- [ ] **AdminCalendar — vista Día y vista Mes**: postergadas (las pills están deshabilitadas con tooltip "Próximamente"). La vista Día puede reusar el `cal-day-strip` existente; la vista Mes puede inspirarse en el calendario de `AdminContentDashboard`.
+- [ ] **AdminCalendar — popover de acciones al click**: reusar `ApptActionsMenu` de `AdminAppts.jsx` y disparar en click sobre la cita en el grid.
+- [ ] **UI admin para setear `bookings.meeting_url`**: agregar campo "Enlace de la sesión" en `NewAppointmentModal` y en un futuro modal de edición de cita. Por ahora la columna está y el portal del paciente la consume si llega a tener valor.
+- [ ] **Buffer por servicio vs. global**: hoy hay `services.buffer_min` (per-servicio) y `app_settings.buffer_min` (global). Decidir si el cálculo de slots toma el mayor de los dos o solo el global. Documentar.
+
+---
+
 ## Mejoras técnicas posponibles
 
 - [ ] **Disponibilidad real**: hoy `availability_rules` está en DB pero el wizard
       `/reservar` aún usa días/horas hardcoded del calendario. Conectar
       `CalPicker` para leer `availability_rules` + `availability_overrides`
       + bookings ya tomados → calcular slots libres reales.
-- [ ] **Reagendar/cancelar desde el portal**: los botones existen pero no hacen
-      nada. Necesitan mutation que valide `> 24h antes` y actualice el booking
-      con `status='cancelled'` o cambie `scheduled_at`. Idealmente con
-      `reschedule_token` para enviar enlace por correo.
+- [ ] **Reagendar desde el portal — flujo nativo**: hoy "Reagendar" navega a
+      `/reservar` (reserva nueva + cancelación manual). Idealmente el paciente
+      cambia el `scheduled_at` de su booking existente sin pasar por todo el
+      wizard. Usar `reschedule_token` para enviar enlace por correo.
+      *Cancelar* ya funciona (`useCancelMyBooking`, valida 24h).
 - [ ] **Tasks y Documents en el portal**: hoy `PortalTasks` y `PortalDocs` leen
       mocks. La UI del admin para asignarles tareas y subirles documentos
       (Supabase Storage para los archivos) está pendiente.

@@ -41,6 +41,36 @@ export function useUpdateService() {
   });
 }
 
+export function useCreateService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input) => handle(api.createService(input)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['services'] });
+    },
+  });
+}
+
+export function useDuplicateService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => handle(api.duplicateService(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['services'] });
+    },
+  });
+}
+
+export function useDeleteService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => handle(api.deleteService(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['services'] });
+    },
+  });
+}
+
 // ─────────────────────────────────────────────
 // DISPONIBILIDAD
 // ─────────────────────────────────────────────
@@ -57,6 +87,36 @@ export function useAvailabilityOverrides() {
     queryKey: ['availability', 'overrides'],
     queryFn: () => handle(api.fetchAvailabilityOverrides()),
     staleTime: 1000 * 60 * 10,
+  });
+}
+
+export function useUpdateAvailabilityRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }) => handle(api.updateAvailabilityRule(id, patch)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['availability'] });
+    },
+  });
+}
+
+export function useCreateAvailabilityOverride() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input) => handle(api.createAvailabilityOverride(input)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['availability'] });
+    },
+  });
+}
+
+export function useDeleteAvailabilityOverride() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => handle(api.deleteAvailabilityOverride(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['availability'] });
+    },
   });
 }
 
@@ -104,10 +164,20 @@ export function useCreateBooking() {
 export function useUpdateBookingStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }) => handle(api.updateBookingStatus(id, status)),
+    mutationFn: ({ id, status, reason }) => handle(api.updateBookingStatus(id, status, { reason })),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bookings'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useUpdateBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }) => handle(api.updateBooking(id, patch)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
     },
   });
 }
@@ -166,6 +236,16 @@ export function useDeleteClient() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['clients'] });
       qc.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+}
+
+export function useUpdateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }) => handle(api.updateClient(id, patch)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clients'] });
     },
   });
 }
@@ -320,5 +400,67 @@ export function useDashboardKpis() {
     queryKey: ['dashboard', 'kpis'],
     queryFn: () => handle(api.fetchDashboardKpis()),
     staleTime: 1000 * 30,
+  });
+}
+
+// ─────────────────────────────────────────────
+// SETTINGS GLOBALES
+// ─────────────────────────────────────────────
+export function useSettings() {
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: () => handle(api.fetchSettings()),
+    staleTime: 1000 * 60 * 10,
+  });
+}
+
+export function useUpdateSetting() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ key, value }) => handle(api.updateSetting(key, value)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings'] });
+    },
+  });
+}
+
+// ─────────────────────────────────────────────
+// NOTAS CLÍNICAS
+// ─────────────────────────────────────────────
+export function useClinicalNotes(clientId) {
+  return useQuery({
+    queryKey: ['admin', 'clinical-notes', clientId],
+    queryFn: () => handle(api.fetchClinicalNotes(clientId)),
+    enabled: Boolean(clientId),
+  });
+}
+
+export function useCreateClinicalNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input) => handle(api.createClinicalNote(input)),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'clinical-notes', variables.client_id] });
+    },
+  });
+}
+
+export function useUpdateClinicalNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }) => handle(api.updateClinicalNote(id, body)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'clinical-notes'] });
+    },
+  });
+}
+
+export function useDeleteClinicalNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => handle(api.deleteClinicalNote(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'clinical-notes'] });
+    },
   });
 }

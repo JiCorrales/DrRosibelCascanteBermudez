@@ -100,6 +100,33 @@ export const BLOCKED_DATES = [
   'Mié 25 dic · Navidad',
 ];
 
+// Shape DB-like para hooks que esperan el formato real de Supabase.
+// weekday: 0=Dom, 1=Lun, ..., 6=Sáb. start/end_time en formato HH:MM:SS.
+export const AVAILABILITY_RULES_DB = [
+  { id: 1, weekday: 0, start_time: '09:00:00', end_time: '17:00:00', active: false },
+  { id: 2, weekday: 1, start_time: '09:00:00', end_time: '17:00:00', active: true },
+  { id: 3, weekday: 2, start_time: '09:00:00', end_time: '17:00:00', active: true },
+  { id: 4, weekday: 3, start_time: '09:00:00', end_time: '13:00:00', active: true },
+  { id: 5, weekday: 4, start_time: '09:00:00', end_time: '17:00:00', active: true },
+  { id: 6, weekday: 5, start_time: '09:00:00', end_time: '15:00:00', active: true },
+  { id: 7, weekday: 6, start_time: '09:00:00', end_time: '17:00:00', active: false },
+];
+
+export const AVAILABILITY_OVERRIDES_DB = [
+  { id: 101, date: '2026-07-22', is_closed: true, start_time: null, end_time: null, note: 'Vacaciones (inicio)' },
+  { id: 102, date: '2026-07-26', is_closed: true, start_time: null, end_time: null, note: 'Vacaciones (fin)' },
+  { id: 103, date: '2026-09-15', is_closed: true, start_time: null, end_time: null, note: 'Feriado · Independencia' },
+  { id: 104, date: '2026-12-25', is_closed: true, start_time: null, end_time: null, note: 'Navidad' },
+];
+
+// Settings globales mock (key/value como app_settings real)
+export const APP_SETTINGS = {
+  buffer_min: 15,
+};
+
+// Notas clínicas mock por cliente
+export const CLINICAL_NOTES = [];
+
 // ─────── KPIs dashboard ───────
 export const KPIS = [
   { label: 'Citas hoy',     value: 6,        sub: '2 pendientes por confirmar' },

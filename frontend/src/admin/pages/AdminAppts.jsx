@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AdminTopbar, StatusPill } from '../AdminShell.jsx';
 import { Btn, Stack, Row, H3, Body, Meta, Photo, Icon } from '../../components/primitives.jsx';
@@ -8,6 +8,7 @@ import {
   useServices,
   useCreateBookingAdmin,
   useDeleteBooking,
+  useUpdateBookingStatus,
 } from '../../lib/queries.js';
 
 const FILTERS = [
@@ -104,6 +105,7 @@ export default function AdminAppts() {
   const args = useMemo(() => filterArgsFor(filter, query), [filter, query]);
   const bookingsQ = useBookings(args);
   const deleteBooking = useDeleteBooking();
+  const updateStatus = useUpdateBookingStatus();
   const rows = bookingsQ.data ?? [];
 
   const handleDelete = (e, a) => {
@@ -113,6 +115,17 @@ export default function AdminAppts() {
     if (window.confirm(`¿Eliminar la cita de ${who} (${formatDate(a.date)} · ${a.time})?`)) {
       deleteBooking.mutate(a.id);
     }
+  };
+
+  const handleStatusChange = (e, a, status) => {
+    e.preventDefault();
+    e.stopPropagation();
+    let reason;
+    if (status === 'cancelled') {
+      reason = window.prompt(`Motivo de cancelación (opcional):`, '');
+      if (reason === null) return; // canceló el prompt
+    }
+    updateStatus.mutate({ id: a.id, status, reason: reason || undefined });
   };
 
   return (
@@ -234,15 +247,12 @@ export default function AdminAppts() {
                   <div>
                     <StatusPill status={a.status} />
                   </div>
-                  <button
-                    type="button"
-                    onClick={(e) => handleDelete(e, a)}
-                    aria-label="Eliminar cita"
-                    className="appt-row__delete"
-                    title="Eliminar cita"
-                  >
-                    <Icon name="trash" size={14} />
-                  </button>
+                  <ApptActionsMenu
+                    appt={a}
+                    onStatus={(status) => (e) => handleStatusChange(e, a, status)}
+                    onDelete={(e) => handleDelete(e, a)}
+                    className="appt-row__actions"
+                  />
                 </Link>
               ))}
             </div>
@@ -273,15 +283,12 @@ export default function AdminAppts() {
                       </Stack>
                     </div>
                   </Link>
-                  <button
-                    type="button"
-                    onClick={(e) => handleDelete(e, a)}
-                    aria-label="Eliminar cita"
-                    className="appt-card__delete"
-                    title="Eliminar cita"
-                  >
-                    <Icon name="trash" size={14} />
-                  </button>
+                  <ApptActionsMenu
+                    appt={a}
+                    onStatus={(status) => (e) => handleStatusChange(e, a, status)}
+                    onDelete={(e) => handleDelete(e, a)}
+                    className="appt-card__actions"
+                  />
                 </div>
               ))}
             </div>
@@ -293,35 +300,152 @@ export default function AdminAppts() {
 
       <style>{`
         .appt-row { position: relative; }
-        .appt-row__delete {
+        .appt-row__actions { justify-self: end; position: relative; }
+        .appt-card-wrapper { position: relative; }
+        .appt-card__actions { position: absolute; top: 10px; right: 10px; }
+
+        .appt-menu__trigger {
           background: transparent;
           border: 0;
-          padding: 6px;
-          border-radius: 6px;
-          cursor: pointer;
-          color: var(--ink-300);
-          opacity: 0;
-          transition: opacity 0.15s, color 0.15s, background 0.15s;
-          justify-self: end;
-        }
-        .appt-row:hover .appt-row__delete { opacity: 1; }
-        .appt-row__delete:hover { background: var(--danger-100); color: var(--danger-500); }
-        .appt-card-wrapper { position: relative; }
-        .appt-card__delete {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background: rgba(255,255,255,0.9);
-          border: 1px solid var(--line);
-          padding: 6px;
+          padding: 6px 10px;
           border-radius: 6px;
           cursor: pointer;
           color: var(--ink-500);
-          transition: color 0.15s, background 0.15s;
+          font-size: 16px;
+          line-height: 1;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          transition: background 0.15s, color 0.15s;
         }
-        .appt-card__delete:hover { background: var(--danger-100); color: var(--danger-500); }
+        .appt-menu__trigger:hover { background: var(--line); color: var(--ink-900); }
+        .appt-card__actions .appt-menu__trigger {
+          background: rgba(255,255,255,0.9);
+          border: 1px solid var(--line);
+        }
+
+        .appt-menu__panel {
+          position: absolute;
+          top: calc(100% + 4px);
+          right: 0;
+          z-index: 30;
+          min-width: 200px;
+          background: #fff;
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+          padding: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .appt-menu__item {
+          background: transparent;
+          border: 0;
+          padding: 8px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-family: var(--sans);
+          font-size: 13px;
+          color: var(--ink-900);
+          text-align: left;
+          transition: background 0.1s, color 0.1s;
+        }
+        .appt-menu__item:hover { background: var(--sage-100); color: var(--sage-700); }
+        .appt-menu__item--danger:hover { background: var(--danger-100); color: var(--danger-500); }
+        .appt-menu__item:disabled { opacity: 0.4; cursor: not-allowed; }
+        .appt-menu__sep {
+          height: 1px;
+          background: var(--line);
+          margin: 4px 0;
+        }
       `}</style>
     </>
+  );
+}
+
+function ApptActionsMenu({ appt, onStatus, onDelete, className }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const key = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('keydown', key);
+    };
+  }, [open]);
+
+  const isPast = new Date(appt.scheduled_at) < new Date();
+  const isPending = appt.status === 'pending';
+  const isConfirmed = appt.status === 'confirmed';
+  const isOpen = isPending || isConfirmed;
+
+  // Helper para cerrar el menú después de la acción y stop propagation
+  const make = (handler) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false);
+    handler(e);
+  };
+
+  return (
+    <div ref={ref} className={className}>
+      <button
+        type="button"
+        className="appt-menu__trigger"
+        aria-label="Acciones de la cita"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="appt-menu__panel" role="menu">
+          {isPending && (
+            <button type="button" className="appt-menu__item" role="menuitem" onClick={make(onStatus('confirmed'))}>
+              Confirmar
+            </button>
+          )}
+          {isOpen && isPast && (
+            <button type="button" className="appt-menu__item" role="menuitem" onClick={make(onStatus('completed'))}>
+              Marcar completada
+            </button>
+          )}
+          {isOpen && isPast && (
+            <button type="button" className="appt-menu__item" role="menuitem" onClick={make(onStatus('no_show'))}>
+              Marcar no-show
+            </button>
+          )}
+          {isOpen && !isPast && (
+            <button type="button" className="appt-menu__item appt-menu__item--danger" role="menuitem" onClick={make(onStatus('cancelled'))}>
+              Cancelar cita
+            </button>
+          )}
+          {!isOpen && (
+            <button type="button" className="appt-menu__item" disabled>
+              Sin acciones disponibles
+            </button>
+          )}
+          <div className="appt-menu__sep" />
+          <button type="button" className="appt-menu__item appt-menu__item--danger" role="menuitem" onClick={make(onDelete)}>
+            Eliminar
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

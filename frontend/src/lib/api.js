@@ -8,9 +8,11 @@ import { SERVICES as MOCK_SERVICES, TIMES as MOCK_TIMES, findService as mockFind
 import {
   CLIENTS as MOCK_CLIENTS,
   APPOINTMENTS as MOCK_APPTS,
-  AVAILABILITY_RULES as MOCK_RULES,
-  BLOCKED_DATES as MOCK_BLOCKED,
+  AVAILABILITY_RULES_DB as MOCK_RULES_DB,
+  AVAILABILITY_OVERRIDES_DB as MOCK_OVERRIDES_DB,
   ADMIN_SERVICES as MOCK_ADMIN_SERVICES,
+  APP_SETTINGS as MOCK_APP_SETTINGS,
+  CLINICAL_NOTES as MOCK_CLINICAL_NOTES,
   PORTAL_TASKS as MOCK_TASKS,
   PORTAL_DOCS as MOCK_DOCS,
   PORTAL_APPTS as MOCK_PORTAL_APPTS,
@@ -64,12 +66,107 @@ export async function updateService(id, patch) {
   return ok(toCamelService(data));
 }
 
+// El id de services es text (slug-like). Si no viene, lo derivamos del nombre.
+function slugify(input) {
+  return String(input ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-+|-+$)/g, '')
+    .slice(0, 60) || `servicio-${Date.now().toString(36)}`;
+}
+
+export async function createService(input) {
+  // input shape camelCase (igual que toSnakeService espera): { id?, name, desc, dur, price, modality?, buffer?, forYou?, active? }
+  if (!isSupabaseConfigured) {
+    const id = input.id || slugify(input.name);
+    const created = {
+      id,
+      slug: id,
+      name: input.name,
+      desc: input.desc ?? '',
+      dur: input.dur ?? 50,
+      price: input.price ?? 0,
+      modality: input.modality ?? 'both',
+      buffer: input.buffer ?? 15,
+      forYou: input.forYou ?? [],
+      active: input.active ?? false,
+      sessionsCount: 0,
+    };
+    MOCK_ADMIN_SERVICES.push(created);
+    return ok(created);
+  }
+  const id = input.id || slugify(input.name);
+  const row = {
+    id,
+    slug: id,
+    name: input.name,
+    description: input.desc ?? '',
+    duration_min: input.dur ?? 50,
+    price_crc: input.price ?? 0,
+    modality: input.modality ?? 'both',
+    buffer_min: input.buffer ?? 15,
+    for_you: input.forYou ?? [],
+    active: input.active ?? false,
+  };
+  const { data, error } = await supabase.from('services').insert(row).select().single();
+  if (error) return err(error);
+  return ok(toCamelService(data));
+}
+
+export async function duplicateService(id) {
+  if (!isSupabaseConfigured) {
+    const src = MOCK_ADMIN_SERVICES.find((s) => s.id === id);
+    if (!src) return err('Servicio no encontrado.');
+    const copy = {
+      ...src,
+      id: `${src.id}-copia-${Date.now().toString(36)}`,
+      name: `${src.name} (copia)`,
+      active: false,
+      sessionsCount: 0,
+    };
+    MOCK_ADMIN_SERVICES.push(copy);
+    return ok(copy);
+  }
+  const { data: src, error: e1 } = await supabase.from('services').select('*').eq('id', id).maybeSingle();
+  if (e1) return err(e1);
+  if (!src) return err('Servicio no encontrado.');
+  const newId = slugify(`${src.name}-copia-${Date.now().toString(36)}`);
+  const row = {
+    ...src,
+    id: newId,
+    slug: newId,
+    name: `${src.name} (copia)`,
+    active: false,
+    created_at: undefined,
+    updated_at: undefined,
+  };
+  delete row.created_at;
+  delete row.updated_at;
+  const { data, error } = await supabase.from('services').insert(row).select().single();
+  if (error) return err(error);
+  return ok(toCamelService(data));
+}
+
+export async function deleteService(id) {
+  // Soft delete: marca inactivo (no rompemos bookings con FK a services).
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_ADMIN_SERVICES.findIndex((s) => s.id === id);
+    if (idx >= 0) MOCK_ADMIN_SERVICES[idx].active = false;
+    return ok({ id });
+  }
+  const { error } = await supabase.from('services').update({ active: false }).eq('id', id);
+  if (error) return err(error);
+  return ok({ id });
+}
+
 // ─────────────────────────────────────────────
 // DISPONIBILIDAD
 // ─────────────────────────────────────────────
 
 export async function fetchAvailabilityRules() {
-  if (!isSupabaseConfigured) return ok(MOCK_RULES);
+  if (!isSupabaseConfigured) return ok(MOCK_RULES_DB);
   const { data, error } = await supabase
     .from('availability_rules')
     .select('*')
@@ -78,14 +175,73 @@ export async function fetchAvailabilityRules() {
   return ok(data);
 }
 
+export async function updateAvailabilityRule(id, patch) {
+  // patch puede incluir: active, start_time, end_time
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_RULES_DB.findIndex((r) => r.id === id);
+    if (idx < 0) return err('Regla no encontrada.');
+    MOCK_RULES_DB[idx] = { ...MOCK_RULES_DB[idx], ...patch };
+    return ok(MOCK_RULES_DB[idx]);
+  }
+  const { data, error } = await supabase
+    .from('availability_rules')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
+}
+
 export async function fetchAvailabilityOverrides() {
-  if (!isSupabaseConfigured) return ok(MOCK_BLOCKED.map((label) => ({ label })));
+  if (!isSupabaseConfigured) return ok(MOCK_OVERRIDES_DB);
   const { data, error } = await supabase
     .from('availability_overrides')
     .select('*')
     .order('date', { ascending: true });
   if (error) return err(error);
   return ok(data);
+}
+
+export async function createAvailabilityOverride(input) {
+  // input: { date (YYYY-MM-DD), is_closed?, start_time?, end_time?, note? }
+  if (!isSupabaseConfigured) {
+    const created = {
+      id: Date.now(),
+      date: input.date,
+      is_closed: input.is_closed ?? true,
+      start_time: input.start_time ?? null,
+      end_time: input.end_time ?? null,
+      note: input.note ?? null,
+    };
+    MOCK_OVERRIDES_DB.push(created);
+    MOCK_OVERRIDES_DB.sort((a, b) => (a.date < b.date ? -1 : 1));
+    return ok(created);
+  }
+  const { data, error } = await supabase
+    .from('availability_overrides')
+    .insert({
+      date: input.date,
+      is_closed: input.is_closed ?? true,
+      start_time: input.start_time ?? null,
+      end_time: input.end_time ?? null,
+      note: input.note ?? null,
+    })
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
+}
+
+export async function deleteAvailabilityOverride(id) {
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_OVERRIDES_DB.findIndex((o) => o.id === id);
+    if (idx >= 0) MOCK_OVERRIDES_DB.splice(idx, 1);
+    return ok({ id });
+  }
+  const { error } = await supabase.from('availability_overrides').delete().eq('id', id);
+  if (error) return err(error);
+  return ok({ id });
 }
 
 // Días con al menos un slot libre en un rango. Usado por el calendario
@@ -259,11 +415,37 @@ export async function listBookings({ from, to, status, search } = {}) {
   return ok(data.map(normalizeDbBooking));
 }
 
-export async function updateBookingStatus(id, status) {
-  if (!isSupabaseConfigured) return err('Sin backend — los cambios no persisten.');
+export async function updateBookingStatus(id, status, opts = {}) {
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_APPTS.findIndex((a) => a.id === id);
+    if (idx >= 0) MOCK_APPTS[idx] = { ...MOCK_APPTS[idx], status };
+    return ok({ id, status });
+  }
+  const patch = { status };
+  if (status === 'cancelled') {
+    patch.cancelled_at = new Date().toISOString();
+    if (opts.reason) patch.cancel_reason = opts.reason;
+  }
   const { data, error } = await supabase
     .from('bookings')
-    .update({ status })
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
+}
+
+// Update genérico de booking (admin) — útil para meeting_url, modality, scheduled_at, etc.
+export async function updateBooking(id, patch) {
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_APPTS.findIndex((a) => a.id === id);
+    if (idx >= 0) MOCK_APPTS[idx] = { ...MOCK_APPTS[idx], ...patch };
+    return ok({ id, ...patch });
+  }
+  const { data, error } = await supabase
+    .from('bookings')
+    .update(patch)
     .eq('id', id)
     .select()
     .single();
@@ -372,6 +554,29 @@ export async function deleteClient(id) {
   const { error } = await supabase.from('clients').delete().eq('id', id);
   if (error) return err(error);
   return ok({ id });
+}
+
+export async function updateClient(id, patch) {
+  // patch en snake_case (full_name, email, phone, age, city, status, notes_internal)
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_CLIENTS.findIndex((c) => c.id === id);
+    if (idx < 0) return err('Cliente no encontrado.');
+    if (patch.full_name) MOCK_CLIENTS[idx].name = patch.full_name;
+    if (patch.email) MOCK_CLIENTS[idx].email = patch.email;
+    if (patch.phone !== undefined) MOCK_CLIENTS[idx].phone = patch.phone ?? '';
+    if (patch.age !== undefined) MOCK_CLIENTS[idx].age = patch.age;
+    if (patch.city !== undefined) MOCK_CLIENTS[idx].city = patch.city ?? '';
+    if (patch.status) MOCK_CLIENTS[idx].status = patch.status;
+    return ok(MOCK_CLIENTS[idx]);
+  }
+  const { data, error } = await supabase
+    .from('clients')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
 }
 
 // Admin: crear cita manualmente desde el panel
@@ -639,6 +844,109 @@ function toSnakeService(patch) {
   if (patch.forYou !== undefined) out.for_you = patch.forYou;
   if (patch.active !== undefined) out.active = patch.active;
   return out;
+}
+
+// ─────────────────────────────────────────────
+// SETTINGS GLOBALES (app_settings)
+// ─────────────────────────────────────────────
+
+export async function fetchSettings() {
+  if (!isSupabaseConfigured) {
+    return ok({ ...MOCK_APP_SETTINGS });
+  }
+  const { data, error } = await supabase.from('app_settings').select('key, value');
+  if (error) return err(error);
+  const out = {};
+  for (const row of data ?? []) {
+    out[row.key] = row.value;
+  }
+  return ok(out);
+}
+
+export async function updateSetting(key, value) {
+  if (!isSupabaseConfigured) {
+    MOCK_APP_SETTINGS[key] = value;
+    return ok({ key, value });
+  }
+  const { data, error } = await supabase
+    .from('app_settings')
+    .upsert({ key, value }, { onConflict: 'key' })
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
+}
+
+// ─────────────────────────────────────────────
+// NOTAS CLÍNICAS (privadas — sólo admin lee/escribe via RLS)
+// ─────────────────────────────────────────────
+
+export async function fetchClinicalNotes(clientId) {
+  if (!isSupabaseConfigured) {
+    return ok(MOCK_CLINICAL_NOTES.filter((n) => n.client_id === clientId).sort((a, b) => (a.created_at < b.created_at ? 1 : -1)));
+  }
+  if (!clientId) return ok([]);
+  const { data, error } = await supabase
+    .from('clinical_notes')
+    .select('*')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false });
+  if (error) return err(error);
+  return ok(data);
+}
+
+export async function createClinicalNote({ client_id, booking_id = null, body }) {
+  if (!isSupabaseConfigured) {
+    const note = {
+      id: `n_${Date.now().toString(36)}`,
+      client_id,
+      booking_id,
+      body,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    MOCK_CLINICAL_NOTES.unshift(note);
+    return ok(note);
+  }
+  const { data, error } = await supabase
+    .from('clinical_notes')
+    .insert({ client_id, booking_id, body })
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
+}
+
+export async function updateClinicalNote(id, body) {
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_CLINICAL_NOTES.findIndex((n) => n.id === id);
+    if (idx < 0) return err('Nota no encontrada.');
+    MOCK_CLINICAL_NOTES[idx] = {
+      ...MOCK_CLINICAL_NOTES[idx],
+      body,
+      updated_at: new Date().toISOString(),
+    };
+    return ok(MOCK_CLINICAL_NOTES[idx]);
+  }
+  const { data, error } = await supabase
+    .from('clinical_notes')
+    .update({ body })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) return err(error);
+  return ok(data);
+}
+
+export async function deleteClinicalNote(id) {
+  if (!isSupabaseConfigured) {
+    const idx = MOCK_CLINICAL_NOTES.findIndex((n) => n.id === id);
+    if (idx >= 0) MOCK_CLINICAL_NOTES.splice(idx, 1);
+    return ok({ id });
+  }
+  const { error } = await supabase.from('clinical_notes').delete().eq('id', id);
+  if (error) return err(error);
+  return ok({ id });
 }
 
 // Re-export tiempos disponibles para el wizard (no van a DB todavía)

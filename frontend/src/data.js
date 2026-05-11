@@ -130,10 +130,23 @@ export const WHATSAPP_PREFILL = {
   // Para el correo de confirmación. El edge function reemplaza los tokens.
   confirm: 'Hola Rosibel, ya reservé mi cita el {{cuando}}. ¿La confirmamos por acá?',
   reschedule: 'Hola Rosibel, necesito reagendar mi cita del {{cuando}}.',
+  // De la doctora hacia el paciente (admin → cliente). {{nombre}} se reemplaza en el caller.
+  admin_to_client: 'Hola {{nombre}}, te escribo de la consulta de Rosibel.',
 };
 
 export function buildWaUrl(message = WHATSAPP_PREFILL.generic) {
   return `${CONTACT.whatsapp_url}?text=${encodeURIComponent(message)}`;
+}
+
+// Construye un wa.me apuntando a un número arbitrario (no la doctora).
+// `phone` puede venir con espacios, +, paréntesis — se sanitiza a sólo dígitos.
+// Devuelve null si el número no tiene al menos 7 dígitos.
+export function buildWaUrlForPhone(phone, message) {
+  if (!phone) return null;
+  const digits = String(phone).replace(/\D/g, '');
+  if (digits.length < 7) return null;
+  const text = message ? `?text=${encodeURIComponent(message)}` : '';
+  return `https://wa.me/${digits}${text}`;
 }
 
 export const PRINCIPIOS = [
