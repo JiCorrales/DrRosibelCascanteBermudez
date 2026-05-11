@@ -1,0 +1,39 @@
+# Dependencies
+**/node_modules/
+**/.pnp
+**/.pnp.js
+
+# Build output
+**/dist/
+**/build/
+**/.vite/
+**/.next/
+
+# Test output
+**/coverage/
+**/test-results/
+**/playwright-report/
+**/playwright/.cache/
+
+# Local env / secrets
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Screenshots (regenerated during testing)
+screenshots/

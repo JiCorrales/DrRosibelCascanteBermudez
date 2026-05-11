@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Wireframes · Dra. Rosibel Cascante Bermúdez</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="tokens.css"/>
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'DM Sans', system-ui, sans-serif; }
+  /* design-canvas brief banner */
+  .brief {
+    background: #fff;
+    border: 1px solid rgba(42,56,42,0.10);
+    border-radius: 14px;
+    padding: 22px 26px;
+    width: 720px;
+    box-shadow: 0 1px 0 rgba(42,56,42,0.04);
+  }
+  .brief h2 { font-family: 'Fraunces', serif; font-weight: 500; color: #2A382A; margin: 0 0 6px; font-size: 22px; }
+  .brief p  { font-family: 'DM Sans', sans-serif; color: #5A6F58; line-height: 1.6; margin: 6px 0; font-size: 13px; }
+  .brief .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+  .brief .legend span { font-size: 11px; color: #85997B; }
+  .brief .legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .lg-marfil::before { background: #F2EDE3; border: 1px solid #D8C9B0; }
+  .lg-beige::before  { background: #D8C9B0; }
+  .lg-sagel::before  { background: #A8B89A; }
+  .lg-sagem::before  { background: #6B8B6E; }
+  .lg-ink::before    { background: #3D4F3B; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="landing-variants.jsx"></script>
+<script type="text/babel" src="booking-variants.jsx"></script>
+<script type="text/babel" src="service-pages.jsx"></script>
+<script type="text/babel" src="admin-variants.jsx"></script>
+<script type="text/babel" src="portal-variants.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+  const W = 390, H_HERO = 720, H_SECTION = 760, H_LONG = 880;
+  const DESKTOP_W = 1280, DESKTOP_H = 780;
+
+    const App = () => (
+    <DesignCanvas>
+      {/* INTRO */}
+      <DCSection id="intro" title="Wireframes · sitio Dra. Rosibel Cascante" subtitle="Semi-hi-fi, mobile-first, paleta beige/salvia · 10 may 2026">
+        <div className="brief">
+          <h2>Cómo leer este lienzo</h2>
+          <p>
+            Cada fila explora una pantalla o sección del brief con 2-3 variantes
+            lado a lado. La paleta beige y salvia ya está aplicada, las tipografías
+            son Fraunces (títulos) y DM Sans (cuerpo). Los servicios y nombres son
+            genéricos ("Servicio 1", "Cliente 1") — esperando los reales.
+          </p>
+          <p>
+            Las fotos son placeholders con un patrón de hatching diagonal. Texto
+            ilustrativo es referencia de <em>tono</em>, no de copy final. Cualquier
+            artboard se puede abrir en pantalla completa (botón en el header de cada
+            tarjeta) y se pueden reordenar arrastrando del icono grip.
+          </p>
+          <div className="legend">
+            <span className="lg-marfil">#F2EDE3 marfil</span>
+            <span className="lg-beige">#D8C9B0 beige</span>
+            <span className="lg-sagel">#A8B89A salvia clara</span>
+            <span className="lg-sagem">#6B8B6E salvia media</span>
+            <span className="lg-ink">#3D4F3B verde oscuro</span>
+          </div>
+        </div>
+      </DCSection>
+
+      {/* LANDING — sección a sección */}
+      <DCSection id="hero" title="Landing · Hero" subtitle="Conversacional (brief) + 2 alternativas para reconsiderar">
+        <DCArtboard width={W} height={H_SECTION} id="hero-a" label="A · Conversacional (definido)"><HeroA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="hero-b" label="B · Editorial elegante"><HeroB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="hero-c" label="C · Trust + primera gratis"><HeroC/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="sobre" title="Landing · Sobre mí" subtitle="01 — bio breve, credenciales, cercanía">
+        <DCArtboard width={W} height={H_SECTION} id="sobre-a" label="A · Foto + credenciales como checklist"><SobreA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="sobre-b" label="B · Stats horizontales + enfoques"><SobreB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="sobre-c" label="C · Cita personal + bio comprimida"><SobreC/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="enfoque" title="Landing · Cómo trabajo" subtitle="02 — principios, enfoque, proceso">
+        <DCArtboard width={W} height={H_SECTION} id="enf-a" label="A · 3 principios numerados"><EnfoqueA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="enf-b" label="B · Tags de corrientes + FAQ corto"><EnfoqueB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="enf-c" label="C · Línea de tiempo de un proceso"><EnfoqueC/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="servicios" title="Landing · Servicios" subtitle="03 — cómo se presenta cada servicio">
+        <DCArtboard width={W} height={H_SECTION} id="srv-a" label="A · Tarjetas detalladas con precio"><ServiciosA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="srv-b" label="B · Lista compacta tipo menú" height={H_HERO}><ServiciosB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="srv-c" label="C · Tarjetas con icono"><ServiciosC/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="situaciones" title="Landing · Para qué situaciones" subtitle="04 — temas habituales: ansiedad, duelo, pareja…">
+        <DCArtboard width={W} height={H_SECTION} id="sit-a" label="A · Pills en mosaico" height={620}><SituacionesA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="sit-b" label="B · Lista con punto · 'puedo ayudarte si...'" height={620}><SituacionesB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="sit-c" label="C · Grid 2×N con iconos"><SituacionesC/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="testimonios" title="Landing · Testimonios" subtitle="05 — opcional, según disponibilidad real">
+        <DCArtboard width={W} height={H_SECTION} id="t-a" label="A · Cita única + paginación" height={620}><TestimoniosA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="t-b" label="B · Tres tarjetas apiladas"><TestimoniosB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="t-c" label="C · Cita grande tipo editorial" height={620}><TestimoniosC/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="faq" title="Landing · Preguntas frecuentes" subtitle="06 — antes de agendar">
+        <DCArtboard width={W} height={H_SECTION} id="faq-a" label="A · Acordeón clásico"><FAQA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="faq-b" label="B · Tarjetas siempre abiertas"><FAQB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="faq-c" label="C · Tabs por tema + numeradas"><FAQC/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="cta" title="Landing · CTA final + Contacto" subtitle="07 — última oportunidad antes del footer">
+        <DCArtboard width={W} height={H_SECTION} id="cta-a" label="A · Bloque salvia con datos" height={680}><CtaA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="cta-b" label="B · Formulario integrado"><CtaB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="cta-c" label="C · Foto + 3 canales" height={680}><CtaC/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="footer" title="Landing · Footer" subtitle="Datos, navegación, créditos">
+        <DCArtboard width={W} height={H_SECTION} id="ft-a" label="A · Oscuro con navegación" height={520}><FooterA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="ft-b" label="B · Claro con datos y redes" height={520}><FooterB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="ft-c" label="C · Editorial · cita final" height={520}><FooterC/></DCArtboard>
+      </DCSection>
+
+      {/* /reservar */}
+      <DCSection id="reservar" title="/reservar — flujo paso a paso" subtitle="Wizard de 4 pasos + 2 enfoques alternativos">
+        <DCArtboard width={W} height={H_SECTION} id="rsv-1" label="1 · Elegí servicio"><Reserva1/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="rsv-2" label="2 · Día y hora"><Reserva2/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="rsv-3" label="3 · Tus datos" height={H_LONG}><Reserva3/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="rsv-4" label="4 · Confirmación"><Reserva4/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="rsv-onepage" label="Alt · Todo en una pantalla" height={H_LONG}><ReservaOnePage/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="rsv-chat" label="Alt · Conversacional / chat"><ReservaChat/></DCArtboard>
+      </DCSection>
+
+      {/* /servicios/[slug] */}
+      <DCSection id="servicio-detalle" title="/servicios/[slug] · página individual" subtitle="3 maneras de presentar un servicio">
+        <DCArtboard width={W} height={H_SECTION} id="srvp-a" label="A · Estándar con CTA sticky" height={H_LONG}><ServicePageA/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="srvp-b" label="B · Editorial · stats centrales"><ServicePageB/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="srvp-c" label="C · FAQ específico (adolescentes)" height={H_LONG}><ServicePageC/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="sobrep" label="Bonus · /sobre extendida" height={H_LONG}><SobrePage/></DCArtboard>
+      </DCSection>
+
+      {/* Admin panel */}
+      <DCSection id="admin-login" title="Panel admin · Login" subtitle="Acceso protegido — solo Rosibel">
+        <DCArtboard id="adm-login" label="Login · split screen" width={DESKTOP_W} height={DESKTOP_H}><AdminLogin/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="admin-dash" title="Panel admin · Dashboard" subtitle="3 enfoques para la pantalla de inicio">
+        <DCArtboard id="adm-a" label="A · Stats + agenda" width={DESKTOP_W} height={DESKTOP_H}><AdminDashboardA/></DCArtboard>
+        <DCArtboard id="adm-b" label="B · Foco en la próxima cita" width={DESKTOP_W} height={DESKTOP_H}><AdminDashboardB/></DCArtboard>
+        <DCArtboard id="adm-c" label="C · Vista por semana" width={DESKTOP_W} height={DESKTOP_H}><AdminDashboardC/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="admin-cal" title="Panel admin · Calendario y disponibilidad">
+        <DCArtboard id="adm-cal" label="Vista semanal" width={DESKTOP_W} height={DESKTOP_H}><AdminCalendar/></DCArtboard>
+        <DCArtboard id="adm-avail" label="Disponibilidad · horarios y bloqueos" width={DESKTOP_W} height={DESKTOP_H}><AdminAvailability/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="admin-appts" title="Panel admin · Citas">
+        <DCArtboard id="adm-appts" label="Lista de citas con filtros" width={DESKTOP_W} height={DESKTOP_H}><AdminAppts/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="admin-clients" title="Panel admin · Clientes">
+        <DCArtboard id="adm-cli" label="Lista de clientes · grid" width={DESKTOP_W} height={DESKTOP_H}><AdminClients/></DCArtboard>
+        <DCArtboard id="adm-cli-det" label="Detalle de cliente · historial" width={DESKTOP_W} height={DESKTOP_H}><AdminClientDetail/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="admin-srv" title="Panel admin · Servicios (CRUD)">
+        <DCArtboard id="adm-srv" label="Lista de servicios · grid" width={DESKTOP_W} height={DESKTOP_H}><AdminServices/></DCArtboard>
+        <DCArtboard id="adm-srv-edit" label="Editar servicio · formulario" width={DESKTOP_W} height={DESKTOP_H}><AdminServiceEdit/></DCArtboard>
+      </DCSection>
+
+      {/* Portal Fase 2 */}
+      <DCSection id="portal" title="Portal del paciente · Fase 2" subtitle="Login, citas, tareas asignadas, documentos">
+        <DCArtboard width={W} height={H_SECTION} id="p-login" label="Login · invitación"><PortalLogin/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="p-home" label="Inicio · próxima cita + tareas" height={H_LONG}><PortalHome/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="p-tasks" label="Tareas asignadas"><PortalTasks/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="p-appts" label="Mis citas"><PortalAppts/></DCArtboard>
+        <DCArtboard width={W} height={H_SECTION} id="p-docs" label="Documentos compartidos"><PortalDocs/></DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

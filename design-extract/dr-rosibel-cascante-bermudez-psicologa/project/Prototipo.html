@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Prototipo · Dra. Rosibel Cascante</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="tokens.css"/>
+<style>
+  html, body { margin: 0; padding: 0; background: #e7e3d8; font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; }
+  .stage { padding: 32px 20px 60px; display: flex; flex-direction: column; align-items: center; gap: 18px; min-height: 100vh; box-sizing: border-box; }
+  .stage-head { width: 100%; max-width: 720px; text-align: center; }
+  .stage-head h1 { font-family:'Fraunces', serif; font-weight: 500; color: #2A382A; margin: 0 0 4px; font-size: 22px; }
+  .stage-head p { color: #5A6F58; line-height: 1.6; margin: 6px 0 0; font-size: 13px; }
+  .phone {
+    width: 390px; height: 800px;
+    border-radius: 36px;
+    background: var(--bg);
+    overflow: hidden;
+    box-shadow: 0 18px 50px rgba(42,56,42,0.18), 0 0 0 1px rgba(42,56,42,0.08), 0 0 0 8px #1c211b;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .phone > div { height: 100%; }
+  /* re-enable scroll within calendar cells now that they're interactive */
+  .wf-cal-grid .cell.avail:hover { background: var(--sage-300); cursor: pointer; }
+  .wf-btn:not(:disabled):hover { background: var(--sage-700); }
+  .wf-btn.ghost:not(:disabled):hover { background: var(--sage-100); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-head">
+    <h1>Prototipo clickable</h1>
+    <p>Tocá los botones, las tarjetas de servicio, el FAQ, los testimonios. La navegación, la reserva y el calendario funcionan de verdad.</p>
+  </div>
+  <div class="phone" id="phone"></div>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="prototype.jsx"></script>
+<script type="text/babel" data-presets="react">
+  ReactDOM.createRoot(document.getElementById('phone')).render(<Proto/>);
+</script>
+</body>
+</html>
