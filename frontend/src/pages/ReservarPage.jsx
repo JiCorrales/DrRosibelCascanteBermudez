@@ -12,6 +12,8 @@ import {
 } from '../components/primitives.jsx';
 import CalPicker from '../components/CalPicker.jsx';
 import { SERVICES, TIMES, findService, formatColon } from '../data.js';
+import { useCreateBooking } from '../lib/queries.js';
+import { isSupabaseConfigured } from '../lib/supabase.js';
 
 const STEP_TITLES = {
   1: '¿Qué servicio querés reservar?',
@@ -152,6 +154,17 @@ function Confirmation({ form, service, day, time, onReset }) {
   );
 }
 
+// Construye el ISO timestamp de la reserva a partir del día seleccionado
+// y el índice de TIMES. Asume mayo 2026 (alineado con los seeds actuales).
+// Cuando integremos el calendario real, esto vendrá de un Date completo.
+function buildScheduledAt(day, timeIndex) {
+  const hhmm = TIMES[timeIndex];
+  const [h, m] = hhmm.split(':').map(Number);
+  // Local CR (UTC-6), pero serializamos en UTC para que el server compare correctamente
+  const local = new Date(2026, 4, day, h, m, 0, 0); // mes 4 = mayo (0-indexed)
+  return local.toISOString();
+}
+
 export default function ReservarPage() {
   const navigate = useNavigate();
   const [search] = useSearchParams();
@@ -162,6 +175,10 @@ export default function ReservarPage() {
   const [day, setDay] = useState(14);
   const [time, setTime] = useState(2);
   const [form, setForm] = useState({ name: '', email: '', phone: '', msg: '', consent: false });
+  const [submitError, setSubmitError] = useState('');
+
+  const createBooking = useCreateBooking();
+  const submitting = createBooking.isPending;
 
   const service = findService(svc);
   useEffect(() => {
@@ -182,15 +199,48 @@ export default function ReservarPage() {
     else setStep((s) => s - 1);
   };
 
-  const onNext = (e) => {
+  const onNext = async (e) => {
     e?.preventDefault?.();
-    if (!canNext) return;
-    setStep((s) => s + 1);
+    if (!canNext || submitting) return;
+
+    // Pasos 1-2 sólo avanzan localmente
+    if (step < 3) {
+      setStep((s) => s + 1);
+      return;
+    }
+
+    // Paso 3: confirmar reserva
+    setSubmitError('');
+    try {
+      await createBooking.mutateAsync({
+        service_id: svc,
+        scheduled_at: buildScheduledAt(day, time),
+        duration_min: service.dur,
+        modality: 'online',
+        patient_name: form.name.trim(),
+        patient_email: form.email.trim().toLowerCase(),
+        patient_phone: form.phone.trim(),
+        message: form.msg.trim() || null,
+        consent: form.consent,
+      });
+      setStep(4);
+    } catch (err) {
+      const msg = err?.message ?? 'No pudimos guardar tu reserva. Por favor probá de nuevo.';
+      // Mensajes de RLS o constraint hablan en SQL — los traducimos al usuario.
+      if (msg.includes('bookings_no_overlap_idx') || msg.toLowerCase().includes('duplicate')) {
+        setSubmitError('Ese horario acaba de quedar reservado. Por favor elegí otro.');
+      } else if (msg.toLowerCase().includes('row-level security')) {
+        setSubmitError('La reserva no pasó la validación. Revisá los datos e intentá de nuevo.');
+      } else {
+        setSubmitError(msg);
+      }
+    }
   };
 
   const onReset = () => {
     setStep(1);
     setForm({ name: '', email: '', phone: '', msg: '', consent: false });
+    setSubmitError('');
   };
 
   if (step === 4) {
@@ -423,10 +473,40 @@ export default function ReservarPage() {
               </Stack>
             )}
 
-            <div style={{ marginTop: 32 }}>
-              <Btn type="submit" disabled={!canNext} style={{ opacity: canNext ? 1 : 0.5 }}>
-                {step === 3 ? 'Confirmar reserva' : 'Continuar'}
+            {submitError && step === 3 && (
+              <div
+                role="alert"
+                style={{
+                  marginTop: 24,
+                  background: 'var(--danger-100)',
+                  color: 'var(--danger-500)',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--r-md)',
+                  border: '1px solid rgba(184,84,80,0.28)',
+                  fontSize: 14,
+                }}
+              >
+                {submitError}
+              </div>
+            )}
+
+            <div style={{ marginTop: 24 }}>
+              <Btn
+                type="submit"
+                disabled={!canNext || submitting}
+                style={{ opacity: !canNext || submitting ? 0.5 : 1 }}
+              >
+                {submitting
+                  ? 'Procesando…'
+                  : step === 3
+                  ? 'Confirmar reserva'
+                  : 'Continuar'}
               </Btn>
+              {step === 3 && !isSupabaseConfigured && (
+                <Meta style={{ display: 'block', marginTop: 10, color: 'var(--ink-300)' }}>
+                  Modo demo: la reserva no se guarda en ningún lado.
+                </Meta>
+              )}
             </div>
           </form>
 

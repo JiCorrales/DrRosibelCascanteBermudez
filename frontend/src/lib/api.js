@@ -19,7 +19,17 @@ import {
 } from '../mock/admin-data.js';
 
 const ok = (data) => ({ data, error: null });
-const err = (e) => ({ data: null, error: e instanceof Error ? e : new Error(String(e)) });
+const err = (e) => {
+  if (e instanceof Error) return { data: null, error: e };
+  // Errores de PostgREST / Supabase: { message, code, details, hint, status }
+  const message = e?.message ?? e?.error_description ?? String(e);
+  const wrapped = new Error(message);
+  wrapped.cause = e;
+  if (e?.code) wrapped.code = e.code;
+  if (e?.status) wrapped.status = e.status;
+  if (e?.details) wrapped.details = e.details;
+  return { data: null, error: wrapped };
+};
 
 // ─────────────────────────────────────────────
 // SERVICIOS
@@ -88,13 +98,14 @@ export async function createBooking(input) {
     // En modo mock devolvemos una respuesta exitosa pero sin persistir
     return ok({ id: `mock-${Date.now()}`, ...input, status: 'pending' });
   }
-  const { data, error } = await supabase
+  // Sin .select(): anon no tiene permiso RLS de SELECT en bookings, así que
+  // pedir RETURNING haría que PostgREST devolviera error aunque el INSERT pase.
+  // Devolvemos los datos que ya conocemos en el cliente.
+  const { error } = await supabase
     .from('bookings')
-    .insert({ ...input, status: 'pending' })
-    .select()
-    .single();
+    .insert({ ...input, status: 'pending' });
   if (error) return err(error);
-  return ok(data);
+  return ok({ ...input, status: 'pending' });
 }
 
 export async function listBookings({ from, to, status, search } = {}) {
