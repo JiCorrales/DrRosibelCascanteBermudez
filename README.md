@@ -110,14 +110,27 @@ El bundle original viene de [claude.ai/design](https://claude.ai/design) y vive 
 - CTA A · bloque salvia
 - Footer A · oscuro con navegación
 
-## Deploy del frontend (sugerido)
+## Deploy
 
-`dist/` es estático puro — funciona en cualquier static host:
+Configurado para **GitHub Pages** vía Actions. URL pública: **https://jicorrales.github.io/DrRosibelCascanteBermudez/**
 
-- **Vercel** o **Netlify** (cero config, deploy preview por PR).
-- **Cloudflare Pages** (rápido en LATAM, bueno para tráfico CR).
+Cualquier push a `main` dispara el workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) que:
 
-Configurar SPA fallback: cualquier 404 debe servir `index.html` para que React Router funcione (`vercel.json` con rewrite `/* → /index.html`, o `_redirects` con `/*  /index.html  200` en Netlify).
+1. Corre `npm test` (frena el deploy si los unit tests rompen).
+2. Build de Vite con `VITE_BASE=/<repo-name>/` (auto-detectado del nombre del repo).
+3. Postbuild copia `dist/index.html` a `dist/404.html` (SPA fallback) y genera `.nojekyll`.
+4. Publica el artefacto a Pages.
+
+**Workflows manuales:** `gh workflow run "Deploy frontend to GitHub Pages" --repo JiCorrales/DrRosibelCascanteBermudez`
+
+**Migrar a dominio propio** (ej. `rosibelpsicologa.cr`):
+
+1. Comprar el dominio (Namecheap, GoDaddy, etc.).
+2. En el DNS del dominio, agregar registros A o CNAME apuntando a GitHub Pages ([guía oficial](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site)).
+3. En el repo: `Settings → Pages → Custom domain → rosibelpsicologa.cr`. Marcar "Enforce HTTPS".
+4. En el workflow, cambiar `VITE_BASE` a `/` (línea 41) y commitear. Sin base path el sitio sirve desde el root del dominio.
+
+**Otras opciones de hosting si querés migrar:** Vercel, Netlify y Cloudflare Pages soportan SPA fallback nativo (no necesitan el truco del 404.html). En todos, root del proyecto = `frontend/`, build command = `npm run build`, output = `dist/`.
 
 ## Próximos pasos
 
