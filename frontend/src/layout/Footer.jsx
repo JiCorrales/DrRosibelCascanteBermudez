@@ -37,13 +37,13 @@ export default function Footer() {
 
           <div>
             <h4>Contacto</h4>
-            <a href="mailto:hola@rosibelpsicologa.cr" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <a href="mailto:cascantebermudezrosibel@gmail.com" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="mail" size={14} />
-              <span>hola@rosibelpsicologa.cr</span>
+              <span>cascantebermudezrosibel@gmail.com</span>
             </a>
-            <a href="tel:+50600000000" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <a href="tel:+50688414861" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="phone" size={14} />
-              <span>+506 0000 0000</span>
+              <span>+506 8841 4861</span>
             </a>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
               <Icon name="location" size={14} />

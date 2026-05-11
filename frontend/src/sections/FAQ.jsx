@@ -14,8 +14,8 @@ export default function FAQ() {
             <h2 className="h2-display">Lo que la gente suele preguntar.</h2>
             <Body size={16}>
               ¿No ves tu pregunta? Escribime a{' '}
-              <a href="mailto:hola@rosibelpsicologa.cr" style={{ color: 'var(--sage-700)', textDecoration: 'underline' }}>
-                hola@rosibelpsicologa.cr
+              <a href="mailto:cascantebermudezrosibel@gmail.com" style={{ color: 'var(--sage-700)', textDecoration: 'underline' }}>
+                cascantebermudezrosibel@gmail.com
               </a>
               .
             </Body>

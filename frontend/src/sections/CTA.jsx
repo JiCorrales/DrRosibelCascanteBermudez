@@ -43,16 +43,16 @@ export default function CTA() {
               <Row gap={12} align="center">
                 <Icon name="mail" size={16} color="var(--sage-100)" />
                 <a
-                  href="mailto:hola@rosibelpsicologa.cr"
+                  href="mailto:cascantebermudezrosibel@gmail.com"
                   style={{ color: 'var(--bg)', fontSize: 15, textDecoration: 'underline' }}
                 >
-                  hola@rosibelpsicologa.cr
+                  cascantebermudezrosibel@gmail.com
                 </a>
               </Row>
               <Row gap={12} align="center">
                 <Icon name="phone" size={16} color="var(--sage-100)" />
-                <a href="tel:+50600000000" style={{ color: 'var(--bg)', fontSize: 15, textDecoration: 'underline' }}>
-                  +506 0000 0000
+                <a href="tel:+50688414861" style={{ color: 'var(--bg)', fontSize: 15, textDecoration: 'underline' }}>
+                  +506 8841 4861
                 </a>
               </Row>
               <Row gap={12} align="center">

@@ -118,8 +118,8 @@ export default function TerminosPage() {
           <div className="wf-divider" />
           <Meta>
             ¿Algo no queda claro? Escribime a{' '}
-            <a href="mailto:hola@rosibelpsicologa.cr" style={{ color: 'var(--sage-700)' }}>
-              hola@rosibelpsicologa.cr
+            <a href="mailto:cascantebermudezrosibel@gmail.com" style={{ color: 'var(--sage-700)' }}>
+              cascantebermudezrosibel@gmail.com
             </a>{' '}
             o volvé a{' '}
             <Link to="/" style={{ color: 'var(--sage-700)' }}>

@@ -290,8 +290,8 @@ Para reemplazar los placeholders y dejar el sitio listo para que los pacientes l
 
 ### Datos de contacto
 
-- [ ] **Correo profesional** real (hoy: `hola@rosibelpsicologa.cr`)
-- [ ] **Teléfono / WhatsApp** real (hoy: `+506 0000 0000`)
+- [x] **Correo profesional** real → `cascantebermudezrosibel@gmail.com`
+- [x] **Teléfono / WhatsApp** real → `+506 8841 4861`
 - [ ] **Dirección del consultorio** real (hoy: "San Pedro, San José")
 
 ### Catálogo de servicios

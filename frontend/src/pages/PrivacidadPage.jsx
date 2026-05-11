@@ -35,8 +35,8 @@ export default function PrivacidadPage() {
               Colegio Profesional de Psicólogos de Costa Rica (CPCR&nbsp;XXXX).
               <br />
               Contacto:{' '}
-              <a href="mailto:hola@rosibelpsicologa.cr" style={{ color: 'var(--sage-700)' }}>
-                hola@rosibelpsicologa.cr
+              <a href="mailto:cascantebermudezrosibel@gmail.com" style={{ color: 'var(--sage-700)' }}>
+                cascantebermudezrosibel@gmail.com
               </a>
               .
             </Body>
@@ -113,8 +113,8 @@ export default function PrivacidadPage() {
             </ul>
             <Body size={15}>
               Para ejercer cualquiera de estos derechos, escribime a{' '}
-              <a href="mailto:hola@rosibelpsicologa.cr" style={{ color: 'var(--sage-700)' }}>
-                hola@rosibelpsicologa.cr
+              <a href="mailto:cascantebermudezrosibel@gmail.com" style={{ color: 'var(--sage-700)' }}>
+                cascantebermudezrosibel@gmail.com
               </a>{' '}
               con asunto "Derechos ARCO". Te respondo en máximo 5 días hábiles.
             </Body>
@@ -145,8 +145,8 @@ export default function PrivacidadPage() {
           <div className="wf-divider" />
           <Meta>
             ¿Dudas? Escribime a{' '}
-            <a href="mailto:hola@rosibelpsicologa.cr" style={{ color: 'var(--sage-700)' }}>
-              hola@rosibelpsicologa.cr
+            <a href="mailto:cascantebermudezrosibel@gmail.com" style={{ color: 'var(--sage-700)' }}>
+              cascantebermudezrosibel@gmail.com
             </a>{' '}
             o volvé a{' '}
             <Link to="/" style={{ color: 'var(--sage-700)' }}>
