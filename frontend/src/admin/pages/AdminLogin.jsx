@@ -10,6 +10,7 @@ export default function AdminLogin() {
   const { signIn, role } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -96,15 +97,40 @@ export default function AdminLogin() {
               <label htmlFor="admin-password" style={labelStyle}>
                 Contraseña
               </label>
-              <input
-                id="admin-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-                style={inputStyle}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="admin-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                  style={{ ...inputStyle, paddingRight: 44 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  title={showPassword ? 'Ocultar' : 'Mostrar'}
+                  aria-label={showPassword ? 'Ocultar texto' : 'Mostrar texto'}
+                  aria-pressed={showPassword}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: 8,
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 0,
+                    padding: 8,
+                    cursor: 'pointer',
+                    color: showPassword ? 'var(--sage-700)' : 'var(--ink-500)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderRadius: 6,
+                  }}
+                >
+                  <EyeIcon open={showPassword} />
+                </button>
+              </div>
             </Stack>
 
             <Row justify="space-between" align="center">
@@ -125,7 +151,7 @@ export default function AdminLogin() {
                   color: 'var(--danger-500)',
                   padding: '10px 14px',
                   borderRadius: 'var(--r-md)',
-                  border: '1px solid rgba(184,84,80,0.28)',
+                  border: '1px solid rgb(var(--danger-rgb) / 0.28)',
                   fontSize: 13,
                 }}
               >
@@ -209,3 +235,32 @@ const inputStyle = {
   outline: 'none',
   width: '100%',
 };
+
+function EyeIcon({ open }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {open ? (
+        <>
+          <path d="M2 10s2.8-5.5 8-5.5 8 5.5 8 5.5-2.8 5.5-8 5.5S2 10 2 10z" />
+          <circle cx="10" cy="10" r="2.2" />
+        </>
+      ) : (
+        <>
+          <path d="M2 10s2.8-5.5 8-5.5c1.6 0 3 .5 4.2 1.2" />
+          <path d="M18 10s-2.8 5.5-8 5.5c-1.6 0-3-.5-4.2-1.2" />
+          <path d="M2 2l16 16" />
+        </>
+      )}
+    </svg>
+  );
+}
