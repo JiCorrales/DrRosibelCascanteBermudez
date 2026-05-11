@@ -31,8 +31,8 @@ export default function Footer() {
             <h4>Recursos</h4>
             <Link to="/#faq">Preguntas frecuentes</Link>
             <Link to="/#contacto">Contacto</Link>
-            <a href="#" aria-label="Aviso de privacidad">Aviso de privacidad</a>
-            <a href="#" aria-label="Términos y condiciones">Términos</a>
+            <Link to="/privacidad">Aviso de privacidad</Link>
+            <Link to="/terminos">Términos</Link>
           </div>
 
           <div>

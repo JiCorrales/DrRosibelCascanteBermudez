@@ -6,6 +6,8 @@ import SobrePage from './pages/SobrePage.jsx';
 import ServiciosPage from './pages/ServiciosPage.jsx';
 import ServicioDetailPage from './pages/ServicioDetailPage.jsx';
 import ReservarPage from './pages/ReservarPage.jsx';
+import PrivacidadPage from './pages/PrivacidadPage.jsx';
+import TerminosPage from './pages/TerminosPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import ProtectedRoute from './auth/ProtectedRoute.jsx';
 
@@ -70,6 +72,8 @@ export default function App() {
             <Route path="/servicios" element={<ServiciosPage />} />
             <Route path="/servicios/:id" element={<ServicioDetailPage />} />
             <Route path="/reservar" element={<ReservarPage />} />
+            <Route path="/privacidad" element={<PrivacidadPage />} />
+            <Route path="/terminos" element={<TerminosPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 

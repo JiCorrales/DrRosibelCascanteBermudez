@@ -594,8 +594,11 @@ export default function ReservarPage() {
                     }}
                   />
                   <Body size={14} style={{ color: 'var(--ink-500)' }}>
-                    Acepto el aviso de privacidad y consentimiento informado. Mis datos serán tratados
-                    confidencialmente.
+                    Acepto el{' '}
+                    <Link to="/privacidad" target="_blank" style={{ color: 'var(--sage-700)', textDecoration: 'underline' }}>
+                      aviso de privacidad
+                    </Link>{' '}
+                    y consentimiento informado. Mis datos serán tratados confidencialmente.
                   </Body>
                 </label>
               </Stack>
