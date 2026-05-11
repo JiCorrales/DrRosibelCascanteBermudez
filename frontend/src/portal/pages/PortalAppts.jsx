@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Btn, Stack, Row, H3, Body, Meta, Icon } from '../../components/primitives.jsx';
 import { useAuth } from '../../auth/useAuth.js';
-import { useMyBookings } from '../../lib/queries.js';
+import { useMyBookings, useCancelMyBooking } from '../../lib/queries.js';
 
 const TABS = [
   { key: 'upcoming', label: 'Próximas' },
@@ -28,12 +28,40 @@ const STATUS_LABELS = {
 
 export default function PortalAppts() {
   const [tab, setTab] = useState('upcoming');
+  const [feedback, setFeedback] = useState({ kind: null, msg: '' });
   const { user } = useAuth();
   const bookingsQ = useMyBookings(user?.email);
+  const cancelBooking = useCancelMyBooking();
 
   useEffect(() => {
     document.title = 'Mis citas · Portal · Rosibel';
   }, []);
+
+  const handleCancel = async (appt) => {
+    const cuando = new Date(appt.scheduled_at);
+    const horasFaltantes = (cuando.getTime() - Date.now()) / (1000 * 60 * 60);
+    if (horasFaltantes < 24) {
+      setFeedback({
+        kind: 'error',
+        msg: 'Para cancelar con menos de 24 horas de anticipación, escribime directamente.',
+      });
+      return;
+    }
+    const ok = window.confirm(
+      `¿Cancelar la cita del ${cuando.toLocaleDateString('es-CR')} a las ${appt.time}?`
+    );
+    if (!ok) return;
+    setFeedback({ kind: null, msg: '' });
+    try {
+      await cancelBooking.mutateAsync({ id: appt.id, reason: 'Cancelada por el paciente' });
+      setFeedback({ kind: 'ok', msg: 'Cita cancelada. Te llegará un correo de confirmación.' });
+    } catch (err) {
+      setFeedback({
+        kind: 'error',
+        msg: err?.message ?? 'No pudimos cancelar. Intentá de nuevo o escribime directamente.',
+      });
+    }
+  };
 
   const { upcoming, past } = useMemo(() => {
     const now = new Date();
@@ -67,6 +95,25 @@ export default function PortalAppts() {
           </button>
         ))}
       </Row>
+
+      {feedback.msg && (
+        <div
+          role="status"
+          style={{
+            padding: '12px 16px',
+            borderRadius: 'var(--r-md)',
+            fontSize: 14,
+            background: feedback.kind === 'ok' ? 'var(--sage-100)' : 'var(--danger-100)',
+            color: feedback.kind === 'ok' ? 'var(--sage-700)' : 'var(--danger-500)',
+            border:
+              feedback.kind === 'ok'
+                ? '1px solid rgba(107,139,110,0.28)'
+                : '1px solid rgba(184,84,80,0.28)',
+          }}
+        >
+          {feedback.msg}
+        </div>
+      )}
 
       {bookingsQ.isLoading && (
         <Body style={{ textAlign: 'center', color: 'var(--ink-500)', padding: 24 }}>
@@ -126,11 +173,26 @@ export default function PortalAppts() {
                     <>
                       <div className="wf-divider" />
                       <Row gap={10} wrap>
-                        <Btn small ghost icon={false}>
+                        <Btn
+                          small
+                          ghost
+                          icon={false}
+                          as={Link}
+                          to="/reservar"
+                          title="Por ahora reagendar = reservar una nueva y cancelar la actual"
+                        >
                           Reagendar
                         </Btn>
-                        <Btn small ghost icon={false}>
-                          Cancelar
+                        <Btn
+                          small
+                          ghost
+                          icon={false}
+                          onClick={() => handleCancel(a)}
+                          disabled={cancelBooking.isPending}
+                        >
+                          {cancelBooking.isPending && cancelBooking.variables?.id === a.id
+                            ? 'Cancelando…'
+                            : 'Cancelar'}
                         </Btn>
                       </Row>
                     </>

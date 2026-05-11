@@ -111,6 +111,17 @@ export function useUpdateBookingStatus() {
   });
 }
 
+export function useCancelMyBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }) => handle(api.cancelMyBooking(id, reason)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['portal', 'bookings'] });
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+}
+
 // ─────────────────────────────────────────────
 // CLIENTES
 // ─────────────────────────────────────────────

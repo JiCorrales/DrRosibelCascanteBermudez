@@ -271,6 +271,23 @@ export async function updateBookingStatus(id, status) {
   return ok(data);
 }
 
+// Cancelación por el paciente autenticado. La policy bookings_self_cancel
+// permite UPDATE sólo si: la cita es suya, está en pending/confirmed,
+// faltan más de 24h, y se setea status='cancelled'.
+export async function cancelMyBooking(id, reason = null) {
+  if (!isSupabaseConfigured) return ok({ id, status: 'cancelled' });
+  const { error } = await supabase
+    .from('bookings')
+    .update({
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
+      cancel_reason: reason,
+    })
+    .eq('id', id);
+  if (error) return err(error);
+  return ok({ id, status: 'cancelled' });
+}
+
 // ─────────────────────────────────────────────
 // CLIENTES
 // ─────────────────────────────────────────────
